@@ -1,10 +1,8 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parseBody } from "../utils/parseBody";
 import { registerUser, loginUser } from "../services/auth";
-import { parseCookies } from "../utils/parseCookies";
-import { verifyToken } from "../utils/jwt";
-import pool from "../config/db";
 import { handleApiError } from "../utils/error";
+import { getUserFromRequest } from "../middleware/auth";
 
 export async function handleAuthRoutes(
   req: IncomingMessage,
@@ -78,24 +76,17 @@ export async function handleAuthRoutes(
     res.end(JSON.stringify({ message: "Logged out successfully" }));
   } else if (req.method === "GET" && path === "/me") {
     try {
-      const cookies = parseCookies(req);
-      const token = cookies.token;
+      const authorizedUser = await getUserFromRequest(req);
 
-      if (!token) throw new Error("Unauthorized");
-
-      const decoded = verifyToken(token);
-
-      const result = await pool.query(
-        "SELECT id, name, email, role FROM users WHERE id = $1",
-        [decoded.userId]
-      );
-
-      const user = result.rows[0];
-
-      if (!user) throw new Error("User not found");
+      if (!authorizedUser) {
+        handleApiError(res, null, 401, "Unauthorized");
+        return true;
+      }
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ user: { ...user, password: undefined } }));
+      res.end(
+        JSON.stringify({ user: { ...authorizedUser, password: undefined } })
+      );
     } catch (error) {
       handleApiError(res, error, 401, "User not found");
     }
