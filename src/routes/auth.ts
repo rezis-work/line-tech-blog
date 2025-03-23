@@ -1,6 +1,10 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parseBody } from "../utils/parseBody";
 import { registerUser, loginUser } from "../services/auth";
+import { parseCookies } from "../utils/parseCookies";
+import { verifyToken } from "../utils/jwt";
+import pool from "../config/db";
+import { handleApiError } from "../utils/error";
 
 export async function handleAuthRoutes(
   req: IncomingMessage,
@@ -18,7 +22,12 @@ export async function handleAuthRoutes(
       const { name, email, password } = await parseBody(req);
       if (!name || !email || !password) {
         res.writeHead(400);
-        res.end(JSON.stringify({ error: "Missing required fields" }));
+        res.end(
+          JSON.stringify({
+            error: "Missing required fields",
+            reqiredFileds: ["name", "email", "password"],
+          })
+        );
         return;
       }
       const user = await registerUser(name, email, password);
@@ -30,20 +39,19 @@ export async function handleAuthRoutes(
         })
       );
     } catch (err) {
-      if (err instanceof Error) {
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: err.message }));
-      } else {
-        res.statusCode = 500;
-        res.end(JSON.stringify({ error: "An unknown error occurred" }));
-      }
+      handleApiError(res, err, 401, "User registration failed");
     }
   } else if (req.method === "POST" && path === "/login") {
     try {
       const { email, password } = await parseBody(req);
       if (!email || !password) {
         res.writeHead(400);
-        res.end(JSON.stringify({ error: "Missing required fields" }));
+        res.end(
+          JSON.stringify({
+            error: "Missing required fields",
+            reqiredFileds: ["email", "password"],
+          })
+        );
         return;
       }
       const { token, user } = await loginUser(email, password);
@@ -60,13 +68,7 @@ export async function handleAuthRoutes(
         })
       );
     } catch (err) {
-      if (err instanceof Error) {
-        res.statusCode = 401;
-        res.end(JSON.stringify({ error: err.message }));
-      } else {
-        res.statusCode = 500;
-        res.end(JSON.stringify({ error: "An unknown error occurred" }));
-      }
+      handleApiError(res, err, 401, "Login failed");
     }
   } else if (req.method === "POST" && path === "/logout") {
     res.writeHead(200, {
@@ -74,8 +76,30 @@ export async function handleAuthRoutes(
       "Content-Type": "application/json",
     });
     res.end(JSON.stringify({ message: "Logged out successfully" }));
+  } else if (req.method === "GET" && path === "/me") {
+    try {
+      const cookies = parseCookies(req);
+      const token = cookies.token;
+
+      if (!token) throw new Error("Unauthorized");
+
+      const decoded = verifyToken(token);
+
+      const result = await pool.query(
+        "SELECT id, name, email, role FROM users WHERE id = $1",
+        [decoded.userId]
+      );
+
+      const user = result.rows[0];
+
+      if (!user) throw new Error("User not found");
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ user: { ...user, password: undefined } }));
+    } catch (error) {
+      handleApiError(res, error, 401, "User not found");
+    }
   } else {
-    res.statusCode = 404;
-    res.end(JSON.stringify({ error: "Route not found" }));
+    handleApiError(res, null, 404, "Route not found");
   }
 }

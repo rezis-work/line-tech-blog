@@ -19,7 +19,7 @@ export async function registerUser(
 
 export async function loginUser(email: string, password: string) {
   const result = await pool.query(
-    "SELECT email, password, role FROM users WHERE email = $1",
+    "SELECT id, email, password, role FROM users WHERE email = $1",
     [email]
   );
 
