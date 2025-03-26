@@ -17,7 +17,7 @@ export async function handleAuthRoutes(
   const path = parsedUrl.pathname;
   if (req.method === "POST" && path === "/register") {
     try {
-      const { name, email, password } = await parseBody(req);
+      const { name, email, password, role } = await parseBody(req);
       if (!name || !email || !password) {
         res.writeHead(400);
         res.end(
@@ -26,9 +26,9 @@ export async function handleAuthRoutes(
             reqiredFileds: ["name", "email", "password"],
           })
         );
-        return;
+        return true;
       }
-      const user = await registerUser(name, email, password);
+      const user = await registerUser(name, email, password, role);
       res.writeHead(201);
       res.end(
         JSON.stringify({
@@ -36,8 +36,10 @@ export async function handleAuthRoutes(
           message: "User registered successfully",
         })
       );
+      return true;
     } catch (err) {
       handleApiError(res, err, 401, "User registration failed");
+      return true;
     }
   } else if (req.method === "POST" && path === "/login") {
     try {
@@ -50,7 +52,7 @@ export async function handleAuthRoutes(
             reqiredFileds: ["email", "password"],
           })
         );
-        return;
+        return true;
       }
       const { token, user } = await loginUser(email, password);
       res.writeHead(200, {
@@ -65,8 +67,10 @@ export async function handleAuthRoutes(
           message: "Logged in successfully",
         })
       );
+      return true;
     } catch (err) {
       handleApiError(res, err, 401, "Login failed");
+      return true;
     }
   } else if (req.method === "POST" && path === "/logout") {
     res.writeHead(200, {
@@ -74,6 +78,7 @@ export async function handleAuthRoutes(
       "Content-Type": "application/json",
     });
     res.end(JSON.stringify({ message: "Logged out successfully" }));
+    return true;
   } else if (req.method === "GET" && path === "/me") {
     try {
       const authorizedUser = await getUserFromRequest(req);
@@ -87,10 +92,12 @@ export async function handleAuthRoutes(
       res.end(
         JSON.stringify({ user: { ...authorizedUser, password: undefined } })
       );
+      return true;
     } catch (error) {
       handleApiError(res, error, 401, "User not found");
+      return true;
     }
-  } else {
-    handleApiError(res, null, 404, "Route not found");
   }
+
+  return false;
 }

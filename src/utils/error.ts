@@ -6,6 +6,9 @@ export function handleApiError(
   defaultStatusCode: number = 500,
   errorMessage: string = "An unknown error occurred"
 ): void {
+  if (res.writableEnded) {
+    return;
+  }
   if (!res.hasHeader("Content-Type")) {
     res.setHeader("Content-Type", "application/json");
   }
