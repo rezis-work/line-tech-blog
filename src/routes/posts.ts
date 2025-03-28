@@ -15,8 +15,11 @@ export async function handlePostRoutes(
   const path = parsedUrl.pathname;
 
   if (req.method === "GET" && path === "/posts") {
+    const categoryParam = parsedUrl.searchParams.get("category");
+    const categoryId = categoryParam ? parseInt(categoryParam) : undefined;
+
     try {
-      const posts = await getAllPosts();
+      const posts = await getAllPosts(categoryId);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(posts));
       return true;
@@ -54,9 +57,18 @@ export async function handlePostRoutes(
     }
 
     try {
-      const { title, slug, content, image_url } = await parseBody(req);
+      const { title, slug, content, image_url, category_ids } = await parseBody(
+        req
+      );
 
-      const post = await createPost(title, slug, content, image_url, user.id);
+      const post = await createPost(
+        title,
+        slug,
+        content,
+        image_url,
+        user.id,
+        Array.isArray(category_ids) ? category_ids : []
+      );
 
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify(post));
