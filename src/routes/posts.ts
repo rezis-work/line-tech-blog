@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parseBody } from "../utils/parseBody";
-import { createPost } from "../services/post";
+import { createPost, getAllPosts, getPostBySlug } from "../services/post";
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
 
@@ -13,6 +13,37 @@ export async function handlePostRoutes(
     `http://${req.headers.host || "localhost"}`
   );
   const path = parsedUrl.pathname;
+
+  if (req.method === "GET" && path === "/posts") {
+    try {
+      const posts = await getAllPosts();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(posts));
+      return true;
+    } catch (err) {
+      handleApiError(res, `${err}`, 500, "Failed to fetch posts");
+      return true;
+    }
+  }
+
+  if (req.method === "GET" && path.startsWith("/posts/")) {
+    const slug = path.split("/")[2];
+
+    try {
+      const post = await getPostBySlug(slug);
+      if (!post) {
+        handleApiError(res, "Post not found", 404, "Post not found");
+        return true;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(post));
+      return true;
+    } catch (err) {
+      handleApiError(res, `${err}`, 500, "Failed to fetch post");
+      return true;
+    }
+  }
 
   if (req.method === "POST" && path === "/posts") {
     const user = await getUserFromRequest(req);
