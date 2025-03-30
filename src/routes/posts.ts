@@ -1,6 +1,11 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parseBody } from "../utils/parseBody";
-import { createPost, getAllPosts, getPostBySlug } from "../services/post";
+import {
+  createPost,
+  getAllPosts,
+  getPostBySlug,
+  updatePostBySlug,
+} from "../services/post";
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
 
@@ -75,6 +80,39 @@ export async function handlePostRoutes(
       return true;
     } catch (error) {
       handleApiError(res, `${error}`, 400, "Failed to create post");
+      return true;
+    }
+  }
+
+  if (req.method === "PUT" && path.startsWith("/posts/")) {
+    const slug = path.split("/")[2];
+    const user = await getUserFromRequest(req);
+
+    if (!user || user.role !== "admin") {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    try {
+      const body = await parseBody(req);
+      const updated = await updatePostBySlug(slug, {
+        title: body.title,
+        newSlug: body.new_slug,
+        content: body.content,
+        imageUrl: body.image_url,
+        categoryIds: body.category_ids,
+      });
+
+      if (!updated) {
+        handleApiError(res, "Post not found", 404);
+        return true;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updated));
+      return true;
+    } catch (error) {
+      handleApiError(res, `${error}`, 400, "Failed to update post");
       return true;
     }
   }

@@ -117,3 +117,62 @@ export async function getPostBySlug(slug: string) {
     },
   };
 }
+
+export async function updatePostBySlug(
+  slug: string,
+  updates: {
+    title?: string;
+    newSlug?: string;
+    content?: string;
+    imageUrl?: string | null;
+    categoryIds?: number[];
+  }
+) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const postResult = await client.query(
+      `
+      UPDATE posts SET
+        title = COALESCE($1, title),
+        slug = COALESCE($2, slug),
+        content = COALESCE($3, content),
+        image_url = COALESCE($4, image_url)
+      WHERE slug = $5
+      RETURNING id, title, slug, content, image_url, created_at
+      `,
+      [updates.title, updates.newSlug, updates.content, updates.imageUrl, slug]
+    );
+
+    const post = postResult.rows[0];
+
+    if (!post) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    if (updates.categoryIds) {
+      await client.query("DELETE FROM post_categories WHERE post_id = $1", [
+        post.id,
+      ]);
+
+      for (const categoryId of updates.categoryIds) {
+        await client.query(
+          `
+          INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)
+          `,
+          [post.id, categoryId]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+    return post;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw new Error("Failed to update post");
+  } finally {
+    client.release();
+  }
+}
