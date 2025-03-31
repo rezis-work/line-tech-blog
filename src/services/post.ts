@@ -94,7 +94,6 @@ export async function getAllPosts(
   params.push(limit, offset);
 
   try {
-    console.log("Querying posts with:", baseQuery, params);
     const [postResult, countResult] = await Promise.all([
       pool.query(baseQuery, params),
       pool.query(countQuery, params.slice(0, paramIndex - 1)),
