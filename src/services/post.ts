@@ -41,37 +41,54 @@ export async function createPost(
   }
 }
 
-export async function getAllPosts(categoryId?: number) {
-  let query = `
-    SELECT
-     p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
-     u.id AS author_id, u.name AS author_name
-     FROM posts p
-     JOIN users u
-     ON p.author_id = u.id
+export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
+  const offset = (page - 1) * limit;
+  let baseQuery = `
+   SELECT
+    p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
+    u.id AS author_id, u.name AS author_name
+   FROM posts p
+   JOIN users u
+   ON
+    p.author_id = u.id
   `;
-  const params: any[] = [];
+
+  let countQuery = `
+   SELECT COUNT(*) FROM posts
+  `;
+
+  const params: (string | number)[] = [];
+  let whereClause: string = "";
 
   if (categoryId) {
-    query += `
-     JOIN post_categories pc
-     ON p.id = pc.post_id
+    whereClause = `
+     JOIN post_categories pc ON pc.post_id = p.id
      WHERE pc.category_id = $1
     `;
+    baseQuery += whereClause;
+    countQuery += ` JOIN post_categories pc ON pc.post_id = p.id WHERE pc.category_id = $1`;
     params.push(categoryId);
   } else {
-    query += `
-     ORDER BY p.created_at DESC
-    `;
+    baseQuery += ` ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
+    params.push(limit, offset);
   }
 
-  const result = await pool.query(query, params);
+  if (categoryId) {
+    baseQuery += ` ORDER BY p.created_at DESC LIMIT $2 OFFSET $3`;
+    params.push(limit, offset);
+  }
 
-  return result.rows.map((post) => ({
+  const [postResult, countResult] = await Promise.all([
+    pool.query(baseQuery, params),
+    pool.query(countQuery, categoryId ? [categoryId] : []),
+  ]);
+
+  const total = parseInt(countResult.rows[0].count);
+
+  const posts = postResult.rows.map((post) => ({
     id: post.id,
     title: post.title,
     slug: post.slug,
-    content: post.content,
     image_url: post.image_url,
     created_at: post.created_at,
     author: {
@@ -79,6 +96,14 @@ export async function getAllPosts(categoryId?: number) {
       name: post.author_name,
     },
   }));
+
+  return {
+    page,
+    limit,
+    total,
+    hasMore: page * limit < total,
+    posts,
+  };
 }
 
 export async function getPostBySlug(slug: string) {
@@ -175,4 +200,20 @@ export async function updatePostBySlug(
   } finally {
     client.release();
   }
+}
+
+export async function deletePostBySlug(slug: string) {
+  const result = await pool.query(
+    `
+     DELETE FROM posts WHERE slug = $1
+     RETURNING id, title, slug
+    `,
+    [slug]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Post not found");
+  }
+
+  return result.rows[0];
 }

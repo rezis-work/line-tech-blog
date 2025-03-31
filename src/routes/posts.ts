@@ -5,6 +5,7 @@ import {
   getAllPosts,
   getPostBySlug,
   updatePostBySlug,
+  deletePostBySlug,
 } from "../services/post";
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
@@ -21,14 +22,19 @@ export async function handlePostRoutes(
 
   if (req.method === "GET" && path === "/posts") {
     const categoryParam = parsedUrl.searchParams.get("category");
+    const pageParam = parsedUrl.searchParams.get("page");
+    const limitParam = parsedUrl.searchParams.get("limit");
     const categoryId = categoryParam ? parseInt(categoryParam) : undefined;
+    const page = pageParam ? parseInt(pageParam) : 1;
+    const limit = limitParam ? parseInt(limitParam) : 5;
 
     try {
-      const posts = await getAllPosts(categoryId);
+      const result = await getAllPosts(categoryId, page, limit);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(posts));
+      res.end(JSON.stringify(result));
       return true;
     } catch (err) {
+      console.error(err);
       handleApiError(res, `${err}`, 500, "Failed to fetch posts");
       return true;
     }
@@ -113,6 +119,27 @@ export async function handlePostRoutes(
       return true;
     } catch (error) {
       handleApiError(res, `${error}`, 400, "Failed to update post");
+      return true;
+    }
+  }
+
+  if (req.method === "DELETE" && path.startsWith("/posts/")) {
+    const slug = path.split("/")[2];
+    const user = await getUserFromRequest(req);
+
+    if (!user || user.role !== "admin") {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    try {
+      const deleted = await deletePostBySlug(slug);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(deleted));
+      return true;
+    } catch (error) {
+      handleApiError(res, `${error}`, 400, "Failed to delete post");
       return true;
     }
   }
