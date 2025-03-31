@@ -44,66 +44,70 @@ export async function createPost(
 export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
   const offset = (page - 1) * limit;
   let baseQuery = `
-   SELECT
-    p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
-    u.id AS author_id, u.name AS author_name
-   FROM posts p
-   JOIN users u
-   ON
-    p.author_id = u.id
+    SELECT
+      p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
+      u.id AS author_id, u.name AS author_name
+    FROM posts p
+    JOIN users u ON p.author_id = u.id
   `;
 
   let countQuery = `
-   SELECT COUNT(*) FROM posts
+    SELECT COUNT(DISTINCT p.id) 
+    FROM posts p
   `;
 
   const params: (string | number)[] = [];
-  let whereClause: string = "";
+  let paramIndex = 1;
 
   if (categoryId) {
-    whereClause = `
-     JOIN post_categories pc ON pc.post_id = p.id
-     WHERE pc.category_id = $1
+    baseQuery += `
+      JOIN post_categories pc ON pc.post_id = p.id
+      WHERE pc.category_id = $${paramIndex}
     `;
-    baseQuery += whereClause;
-    countQuery += ` JOIN post_categories pc ON pc.post_id = p.id WHERE pc.category_id = $1`;
+    countQuery += `
+      JOIN post_categories pc ON pc.post_id = p.id
+      WHERE pc.category_id = $${paramIndex}
+    `;
     params.push(categoryId);
-  } else {
-    baseQuery += ` ORDER BY p.created_at DESC LIMIT $1 OFFSET $2`;
-    params.push(limit, offset);
+    paramIndex++;
   }
 
-  if (categoryId) {
-    baseQuery += ` ORDER BY p.created_at DESC LIMIT $2 OFFSET $3`;
-    params.push(limit, offset);
+  baseQuery += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${
+    paramIndex + 1
+  }`;
+  params.push(limit, offset);
+
+  try {
+    const [postResult, countResult] = await Promise.all([
+      pool.query(baseQuery, params),
+      pool.query(countQuery, categoryId ? [categoryId] : []),
+    ]);
+
+    const total = parseInt(countResult.rows[0].count);
+
+    const posts = postResult.rows.map((post) => ({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      image_url: post.image_url,
+      created_at: post.created_at,
+      author: {
+        id: post.author_id,
+        name: post.author_name,
+      },
+    }));
+
+    return {
+      page,
+      limit,
+      total,
+      hasMore: page * limit < total,
+      posts,
+    };
+  } catch (error) {
+    console.error("Query error:", error, { baseQuery, params });
+    throw error;
   }
-
-  const [postResult, countResult] = await Promise.all([
-    pool.query(baseQuery, params),
-    pool.query(countQuery, categoryId ? [categoryId] : []),
-  ]);
-
-  const total = parseInt(countResult.rows[0].count);
-
-  const posts = postResult.rows.map((post) => ({
-    id: post.id,
-    title: post.title,
-    slug: post.slug,
-    image_url: post.image_url,
-    created_at: post.created_at,
-    author: {
-      id: post.author_id,
-      name: post.author_name,
-    },
-  }));
-
-  return {
-    page,
-    limit,
-    total,
-    hasMore: page * limit < total,
-    posts,
-  };
 }
 
 export async function getPostBySlug(slug: string) {
