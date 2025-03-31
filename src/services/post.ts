@@ -41,7 +41,12 @@ export async function createPost(
   }
 }
 
-export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
+export async function getAllPosts(
+  categoryId?: number,
+  page = 1,
+  limit = 5,
+  query?: string
+) {
   const offset = (page - 1) * limit;
   let baseQuery = `
     SELECT
@@ -54,22 +59,33 @@ export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
   let countQuery = `
     SELECT COUNT(DISTINCT p.id) 
     FROM posts p
+    JOIN users u ON p.author_id = u.id
   `;
 
   const params: (string | number)[] = [];
   let paramIndex = 1;
 
+  const whereClauses: string[] = [];
+
   if (categoryId) {
-    baseQuery += `
-      JOIN post_categories pc ON pc.post_id = p.id
-      WHERE pc.category_id = $${paramIndex}
-    `;
-    countQuery += `
-      JOIN post_categories pc ON pc.post_id = p.id
-      WHERE pc.category_id = $${paramIndex}
-    `;
+    baseQuery += ` JOIN post_categories pc ON pc.post_id = p.id`;
+    countQuery += ` JOIN post_categories pc ON pc.post_id = p.id`;
+    whereClauses.push(`pc.category_id = $${paramIndex}`);
     params.push(categoryId);
     paramIndex++;
+  }
+
+  if (query) {
+    whereClauses.push(
+      `(p.title ILIKE $${paramIndex} OR p.content ILIKE $${paramIndex} OR u.name ILIKE $${paramIndex})`
+    );
+    params.push(`%${query}%`);
+    paramIndex++;
+  }
+
+  if (whereClauses.length > 0) {
+    baseQuery += ` WHERE ${whereClauses.join(" AND ")}`;
+    countQuery += ` WHERE ${whereClauses.join(" AND ")}`;
   }
 
   baseQuery += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${
@@ -78,9 +94,10 @@ export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
   params.push(limit, offset);
 
   try {
+    console.log("Querying posts with:", baseQuery, params);
     const [postResult, countResult] = await Promise.all([
       pool.query(baseQuery, params),
-      pool.query(countQuery, categoryId ? [categoryId] : []),
+      pool.query(countQuery, params.slice(0, paramIndex - 1)),
     ]);
 
     const total = parseInt(countResult.rows[0].count);
@@ -89,6 +106,7 @@ export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
       id: post.id,
       title: post.title,
       slug: post.slug,
+      content: post.content,
       image_url: post.image_url,
       created_at: post.created_at,
       author: {
@@ -101,12 +119,12 @@ export async function getAllPosts(categoryId?: number, page = 1, limit = 5) {
       page,
       limit,
       total,
-      hasMore: page * limit < total,
+      hasMore: total > offset + limit,
       posts,
     };
-  } catch (error) {
-    console.error("Query error:", error, { baseQuery, params });
-    throw error;
+  } catch (err) {
+    console.error("Error fetching posts:", err);
+    throw new Error("Failed to fetch posts");
   }
 }
 

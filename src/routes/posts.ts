@@ -24,12 +24,18 @@ export async function handlePostRoutes(
     const categoryParam = parsedUrl.searchParams.get("category");
     const pageParam = parsedUrl.searchParams.get("page");
     const limitParam = parsedUrl.searchParams.get("limit");
+    const queryParam = parsedUrl.searchParams.get("query");
     const categoryId = categoryParam ? parseInt(categoryParam) : undefined;
     const page = pageParam ? parseInt(pageParam) : 1;
     const limit = limitParam ? parseInt(limitParam) : 5;
 
     try {
-      const result = await getAllPosts(categoryId, page, limit);
+      const result = await getAllPosts(
+        categoryId,
+        page,
+        limit,
+        queryParam || undefined
+      );
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
       return true;
