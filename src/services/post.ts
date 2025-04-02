@@ -99,7 +99,26 @@ export async function getAllPosts(
       pool.query(countQuery, params.slice(0, paramIndex - 1)),
     ]);
 
-    const total = parseInt(countResult.rows[0].count);
+    const postIds = postResult.rows.map((p) => p.id);
+    let categoriesByPostId: Record<number, number[]> = {};
+
+    if (postIds.length > 0) {
+      const placeholders = postIds.map((_, index) => `$${index + 1}`).join(",");
+      const result = await pool.query(
+        `
+        SELECT post_id, category_id
+        FROM post_categories WHERE post_id IN (${placeholders})
+        `,
+        postIds
+      );
+
+      for (const row of result.rows) {
+        if (!categoriesByPostId[row.post_id]) {
+          categoriesByPostId[row.post_id] = [];
+        }
+        categoriesByPostId[row.post_id].push(row.category_id);
+      }
+    }
 
     const posts = postResult.rows.map((post) => ({
       id: post.id,
@@ -112,7 +131,10 @@ export async function getAllPosts(
         id: post.author_id,
         name: post.author_name,
       },
+      categories: categoriesByPostId[post.id] || [],
     }));
+
+    const total = parseInt(countResult.rows[0].count);
 
     return {
       page,
@@ -150,6 +172,22 @@ export async function getPostBySlug(slug: string) {
     throw new Error("Post not found");
   }
 
+  const categoriesResult = await pool.query(
+    `
+     SELECT category_id FROM post_categories WHERE post_id = $1
+    `,
+    [post.id]
+  );
+
+  const category_ids = categoriesResult.rows.map((row) => row.category_id);
+
+  const categories = await pool.query(
+    `
+    SELECT id, name FROM categories WHERE id = ANY($1)
+  `,
+    [category_ids]
+  );
+
   return {
     id: post.id,
     title: post.title,
@@ -161,6 +199,7 @@ export async function getPostBySlug(slug: string) {
       id: post.author_id,
       name: post.author_name,
     },
+    category_ids,
   };
 }
 
