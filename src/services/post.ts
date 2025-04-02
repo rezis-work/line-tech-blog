@@ -181,13 +181,6 @@ export async function getPostBySlug(slug: string) {
 
   const category_ids = categoriesResult.rows.map((row) => row.category_id);
 
-  const categories = await pool.query(
-    `
-    SELECT id, name FROM categories WHERE id = ANY($1)
-  `,
-    [category_ids]
-  );
-
   return {
     id: post.id,
     title: post.title,
