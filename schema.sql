@@ -28,3 +28,9 @@ CREATE TABLE IF NOT EXISTS post_categories (
   category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
   PRIMARY KEY (post_id, category_id)
 );
+
+CREATE TABLE IF NOT EXISTS favorites (
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, post_id)
+);

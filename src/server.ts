@@ -4,6 +4,7 @@ import { handleAuthRoutes } from "./routes/auth";
 import { handlePostRoutes } from "./routes/posts";
 import { handleApiError } from "./utils/error";
 import { handleCategoryRoutes } from "./routes/categories";
+import { handleFavoriteRoutes } from "./routes/favorites";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,11 @@ export function startServer() {
 
       const categoryHandled = await handleCategoryRoutes(req, res);
       if (categoryHandled) {
+        return;
+      }
+
+      const favoriteHandled = await handleFavoriteRoutes(req, res);
+      if (favoriteHandled) {
         return;
       }
 
