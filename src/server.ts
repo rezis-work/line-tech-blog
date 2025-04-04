@@ -6,6 +6,7 @@ import { handleApiError } from "./utils/error";
 import { handleCategoryRoutes } from "./routes/categories";
 import { handleFavoriteRoutes } from "./routes/favorites";
 import { handleUserRoutes } from "./routes/user";
+import { handleCommentRoutes } from "./routes/comments";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -16,6 +17,7 @@ const routeHandlers = [
   handlePostRoutes,
   handleCategoryRoutes,
   handleFavoriteRoutes,
+  handleCommentRoutes,
 ];
 
 export function startServer() {
