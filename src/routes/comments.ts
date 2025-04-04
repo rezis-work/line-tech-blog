@@ -6,6 +6,7 @@ import {
   createComment,
   deleteCommentAsAdminOrOwner,
   getCommentsByPostId,
+  updateCommentById,
 } from "../services/comment";
 import { getUserFromRequest } from "../middleware/auth";
 
@@ -83,6 +84,45 @@ export async function handleCommentRoutes(
       return true;
     } catch (error) {
       handleApiError(res, error, 500);
+      return true;
+    }
+  }
+
+  if (req.method === "PUT" && path.match(/^\/comments\/\d+$/)) {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    const commentId = parseInt(path.split("/")[2]);
+
+    try {
+      const body = await parseBody(req);
+      if (
+        !body.content ||
+        typeof body.content !== "string" ||
+        body.content.trim() === ""
+      ) {
+        handleApiError(res, "Content is required", 400);
+        return true;
+      }
+
+      const updatedComment = await updateCommentById(
+        commentId,
+        user.id,
+        body.content
+      );
+      if (!updatedComment) {
+        handleApiError(res, "Comment not found or not authorized", 404);
+        return true;
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updatedComment));
+      return true;
+    } catch (error) {
+      handleApiError(res, error, 500, "Failed to update comment");
       return true;
     }
   }

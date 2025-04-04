@@ -73,3 +73,25 @@ export async function deleteCommentAsAdminOrOwner(
     return result.rows[0];
   }
 }
+
+export async function updateCommentById(
+  commentId: number,
+  userId: number,
+  newContent: string
+) {
+  const result = await pool.query(
+    `
+    UPDATE comments
+    SET content = $1
+    WHERE id = $2 AND user_id = $3
+    RETURNING id, content, created_at
+    `,
+    [newContent, commentId, userId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Comment not found or not authorized");
+  }
+
+  return result.rows[0];
+}

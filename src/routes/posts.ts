@@ -9,6 +9,7 @@ import {
 } from "../services/post";
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
+import pool from "../config/db";
 
 export async function handlePostRoutes(
   req: IncomingMessage,
@@ -111,6 +112,25 @@ export async function handlePostRoutes(
     }
 
     try {
+      const authorCheck = await pool.query(
+        `
+         SELECT author_id FROM posts WHERE slug = $1
+        `,
+        [slug]
+      );
+
+      if (authorCheck.rows.length === 0) {
+        handleApiError(res, "Post not found", 404);
+        return true;
+      }
+
+      const post = authorCheck.rows[0];
+
+      if (post.author_id !== user.id) {
+        handleApiError(res, "Unauthorized", 401);
+        return true;
+      }
+
       const body = await parseBody(req);
       const updated = await updatePostBySlug(slug, {
         title: body.title,
