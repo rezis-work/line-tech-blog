@@ -9,6 +9,7 @@ import { handleUserRoutes } from "./routes/user";
 import { handleCommentRoutes } from "./routes/comments";
 import { handleAdminDashboardRoutes } from "./routes/admin";
 import { rateLimiter } from "./middleware/rateLimiter";
+import { cors } from "./middleware/cors";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -27,6 +28,10 @@ export function startServer() {
   const server = http.createServer(async (req, res) => {
     try {
       res.setHeader("Content-Type", "application/json");
+
+      if (cors(req, res)) {
+        return;
+      }
 
       if (rateLimiter(req, res)) {
         return;
