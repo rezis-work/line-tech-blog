@@ -102,3 +102,87 @@ export async function getAdminDashboardStats(adminId: number) {
     commentsWeek: parseInt(commentsWeekResult.rows[0].count),
   };
 }
+
+export async function getGlobalAnalyticsData() {
+  const [postResult, userResult, commentResult] = await Promise.all([
+    pool.query(`
+      SELECT 
+       TO_CHAR(created_at, 'YYYY-MM') AS MONTH,
+       COUNT(*) AS count
+       FROM posts
+       GROUP BY month
+       ORDER BY month ASC
+      `),
+    pool.query(`
+        SELECT 
+         TO_CHAR(created_at, 'YYYY-MM') AS MONTH,
+         COUNT(*) AS count
+         FROM users
+         GROUP BY month
+         ORDER BY month ASC
+        `),
+    pool.query(`
+          SELECT 
+           TO_CHAR(created_at, 'YYYY-MM') AS MONTH,
+           COUNT(*) AS count
+           FROM comments
+           GROUP BY month
+           ORDER BY month ASC
+        `),
+  ]);
+
+  return {
+    posts: postResult.rows,
+    users: userResult.rows,
+    comments: commentResult.rows,
+  };
+}
+
+export async function getAdminPersonalAnalytics(adminId: number) {
+  const [postResult, commentResult, favoriteResult] = await Promise.all([
+    pool.query(
+      `
+      SELECT 
+       TO_CHAR(created_at, 'YYYY-MM') AS MONTH,
+       COUNT(*) AS count
+       FROM posts
+       WHERE author_id = $1
+       GROUP BY month
+       ORDER BY month ASC
+      `,
+      [adminId]
+    ),
+    pool.query(
+      `
+       SELECT 
+        TO_CHAR(created_at, 'YYYY-MM') AS month,
+        COUNT(*) AS count
+       FROM comments c
+       JOIN posts p ON c.post_id = p.id
+       WHERE p.author_id = $1
+       GROUP BY month
+       ORDER BY month ASC
+      `,
+      [adminId]
+    ),
+    pool.query(
+      `
+      SELECT 
+       TO_CHAR(created_at, 'YYYY-MM') AS month,
+       COUNT(*) AS count
+       FROM favorites f
+       JOIN posts p ON f.post_id = p.id
+       WHERE p.author_id = $1
+       GROUP BY month
+       ORDER BY month ASC
+      `,
+      [adminId]
+    ),
+  ]);
+
+  return {
+    posts: postResult.rows,
+    comments: commentResult.rows,
+    favorites: favoriteResult.rows,
+  };
+}
