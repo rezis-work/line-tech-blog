@@ -122,8 +122,10 @@ export async function getAllPosts(
       const placeholders = postIds.map((_, index) => `$${index + 1}`).join(",");
       const result = await pool.query(
         `
-        SELECT post_id, category_id
-        FROM post_categories WHERE post_id IN (${placeholders})
+        SELECT pc.post_id, c.name as category_name
+        FROM post_categories pc
+        JOIN categories c ON pc.category_id = c.id
+        WHERE pc.post_id IN (${placeholders})
         `,
         postIds
       );
@@ -132,7 +134,7 @@ export async function getAllPosts(
         if (!categoriesByPostId[row.post_id]) {
           categoriesByPostId[row.post_id] = [];
         }
-        categoriesByPostId[row.post_id].push(row.category_id);
+        categoriesByPostId[row.post_id].push(row.category_name);
       }
 
       const favoriteResult = await pool.query(
