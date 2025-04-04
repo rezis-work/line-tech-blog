@@ -101,6 +101,7 @@ export async function getAllPosts(
 
     const postIds = postResult.rows.map((p) => p.id);
     let categoriesByPostId: Record<number, number[]> = {};
+    let favoriteCountByPostId: Record<number, number> = {};
 
     if (postIds.length > 0) {
       const placeholders = postIds.map((_, index) => `$${index + 1}`).join(",");
@@ -118,6 +119,17 @@ export async function getAllPosts(
         }
         categoriesByPostId[row.post_id].push(row.category_id);
       }
+
+      const favoriteResult = await pool.query(
+        `
+        SELECT post_id, COUNT(*) as count FROM favorites WHERE post_id IN (${placeholders}) GROUP BY post_id
+        `,
+        postIds
+      );
+
+      for (const row of favoriteResult.rows) {
+        favoriteCountByPostId[row.post_id] = parseInt(row.count);
+      }
     }
 
     const posts = postResult.rows.map((post) => ({
@@ -132,6 +144,7 @@ export async function getAllPosts(
         name: post.author_name,
       },
       categories: categoriesByPostId[post.id] || [],
+      favorite_count: favoriteCountByPostId[post.id] || 0,
     }));
 
     const total = parseInt(countResult.rows[0].count);
