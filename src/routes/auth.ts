@@ -3,6 +3,7 @@ import { parseBody } from "../utils/parseBody";
 import { registerUser, loginUser } from "../services/auth";
 import { handleApiError } from "../utils/error";
 import { getUserFromRequest } from "../middleware/auth";
+import { getPostsByUserId } from "../services/user";
 
 export async function handleAuthRoutes(
   req: IncomingMessage,
@@ -95,6 +96,22 @@ export async function handleAuthRoutes(
       return true;
     } catch (error) {
       handleApiError(res, error, 401, "User not found");
+      return true;
+    }
+  } else if (req.method === "GET" && path === "/me/posts") {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      handleApiError(res, null, 401, "Unauthorized");
+      return true;
+    }
+
+    try {
+      const posts = await getPostsByUserId(user.id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ posts }));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to fetch posts");
       return true;
     }
   }

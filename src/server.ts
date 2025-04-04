@@ -5,33 +5,29 @@ import { handlePostRoutes } from "./routes/posts";
 import { handleApiError } from "./utils/error";
 import { handleCategoryRoutes } from "./routes/categories";
 import { handleFavoriteRoutes } from "./routes/favorites";
+import { handleUserRoutes } from "./routes/user";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
+
+const routeHandlers = [
+  handleUserRoutes,
+  handleAuthRoutes,
+  handlePostRoutes,
+  handleCategoryRoutes,
+  handleFavoriteRoutes,
+];
 
 export function startServer() {
   const server = http.createServer(async (req, res) => {
     try {
       res.setHeader("Content-Type", "application/json");
 
-      const authHandled = await handleAuthRoutes(req, res);
-      if (authHandled) {
-        return;
-      }
-
-      const postHandled = await handlePostRoutes(req, res);
-      if (postHandled) {
-        return;
-      }
-
-      const categoryHandled = await handleCategoryRoutes(req, res);
-      if (categoryHandled) {
-        return;
-      }
-
-      const favoriteHandled = await handleFavoriteRoutes(req, res);
-      if (favoriteHandled) {
-        return;
+      for (const handler of routeHandlers) {
+        const handled = await handler(req, res);
+        if (handled) {
+          return;
+        }
       }
 
       handleApiError(res, "Not Found", 404);
