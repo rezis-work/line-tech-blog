@@ -41,15 +41,35 @@ export async function getCommentsByPostId(postId: number) {
   }));
 }
 
-export async function deleteComment(commentId: number, userId: number) {
-  const result = await pool.query(
-    `
-    DELETE FROM comments
-    WHERE id = $1 AND user_id = $2
-    RETURNING id
-    `,
-    [commentId, userId]
-  );
+export async function deleteCommentAsAdminOrOwner(
+  commentId: number,
+  userId: number,
+  userRole: string
+) {
+  if (userRole === "admin") {
+    const result = await pool.query(
+      `
+      DELETE FROM comments c
+      USING posts p
+      WHERE c.id = $1
+      AND c.post_id = p.id
+      AND p.author_id = $2
+      RETURNING id
+      `,
+      [commentId, userId]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
+  } else {
+    const result = await pool.query(
+      `
+      DELETE FROM comments
+      WHERE id = $1 AND user_id = $2
+      RETURNING id
+      `,
+      [commentId, userId]
+    );
+
+    return result.rows[0];
+  }
 }

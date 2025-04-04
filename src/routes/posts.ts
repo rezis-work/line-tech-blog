@@ -25,6 +25,10 @@ export async function handlePostRoutes(
     const pageParam = parsedUrl.searchParams.get("page");
     const limitParam = parsedUrl.searchParams.get("limit");
     const queryParam = parsedUrl.searchParams.get("query");
+    const sortParam = parsedUrl.searchParams.get("sort") as
+      | "newest"
+      | "popular"
+      | "commented";
     const categoryId = categoryParam ? parseInt(categoryParam) : undefined;
     const page = pageParam ? parseInt(pageParam) : 1;
     const limit = limitParam ? parseInt(limitParam) : 5;
@@ -34,7 +38,8 @@ export async function handlePostRoutes(
         categoryId,
         page,
         limit,
-        queryParam || undefined
+        queryParam || undefined,
+        sortParam || "newest"
       );
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));

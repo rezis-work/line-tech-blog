@@ -45,7 +45,8 @@ export async function getAllPosts(
   categoryId?: number,
   page = 1,
   limit = 5,
-  query?: string
+  query?: string,
+  sort?: "newest" | "popular" | "commented"
 ) {
   const offset = (page - 1) * limit;
   let baseQuery = `
@@ -66,6 +67,7 @@ export async function getAllPosts(
   let paramIndex = 1;
 
   const whereClauses: string[] = [];
+  let orderByClause = `ORDER BY p.created_at DESC`;
 
   if (categoryId) {
     baseQuery += ` JOIN post_categories pc ON pc.post_id = p.id`;
@@ -73,6 +75,18 @@ export async function getAllPosts(
     whereClauses.push(`pc.category_id = $${paramIndex}`);
     params.push(categoryId);
     paramIndex++;
+  }
+
+  if (sort === "popular") {
+    orderByClause = `
+     ORDER BY 
+       (SELECT COUNT(*) FROM favorites f WHERE f.post_id = p.id) DESC
+    `;
+  } else if (sort === "commented") {
+    orderByClause = `
+     ORDER BY 
+       (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id) DESC
+    `;
   }
 
   if (query) {
@@ -88,7 +102,7 @@ export async function getAllPosts(
     countQuery += ` WHERE ${whereClauses.join(" AND ")}`;
   }
 
-  baseQuery += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${
+  baseQuery += ` ${orderByClause} LIMIT $${paramIndex} OFFSET $${
     paramIndex + 1
   }`;
   params.push(limit, offset);
@@ -148,7 +162,10 @@ export async function getAllPosts(
       id: post.id,
       title: post.title,
       slug: post.slug,
-      content: post.content,
+      excerpt:
+        post.content.length > 200
+          ? post.content.slice(0, 200) + "..."
+          : post.content,
       image_url: post.image_url,
       created_at: post.created_at,
       author: {

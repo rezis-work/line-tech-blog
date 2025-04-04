@@ -4,7 +4,7 @@ import { parseBody } from "../utils/parseBody";
 import { handleApiError } from "../utils/error";
 import {
   createComment,
-  deleteComment,
+  deleteCommentAsAdminOrOwner,
   getCommentsByPostId,
 } from "../services/comment";
 import { getUserFromRequest } from "../middleware/auth";
@@ -69,7 +69,11 @@ export async function handleCommentRoutes(
     const commentId = parseInt(path.split("/")[2]);
 
     try {
-      const deleted = await deleteComment(commentId, user.id);
+      const deleted = await deleteCommentAsAdminOrOwner(
+        commentId,
+        user.id,
+        user.role
+      );
       if (!deleted) {
         handleApiError(res, "Comment not found or not authorized", 404);
         return true;

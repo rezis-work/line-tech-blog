@@ -21,7 +21,7 @@ export async function getUserFromRequest(
     const decoded = verifyToken(token);
 
     const result = await pool.query(
-      "SELECT id, name, email, role FROM users WHERE id = $1",
+      "SELECT id, name, email, role, image_url FROM users WHERE id = $1",
       [decoded.userId]
     );
 

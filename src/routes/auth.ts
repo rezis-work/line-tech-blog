@@ -3,7 +3,7 @@ import { parseBody } from "../utils/parseBody";
 import { registerUser, loginUser } from "../services/auth";
 import { handleApiError } from "../utils/error";
 import { getUserFromRequest } from "../middleware/auth";
-import { getPostsByUserId } from "../services/user";
+import { getPostsByUserId, updateUserProfile } from "../services/user";
 
 export async function handleAuthRoutes(
   req: IncomingMessage,
@@ -112,6 +112,30 @@ export async function handleAuthRoutes(
       return true;
     } catch (err) {
       handleApiError(res, err, 500, "Failed to fetch posts");
+      return true;
+    }
+  } else if (req.method === "PUT" && path === "/me") {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      handleApiError(res, null, 401, "Unauthorized");
+      return true;
+    }
+
+    try {
+      const { name, image_url, email } = await parseBody(req);
+
+      const updatedUser = await updateUserProfile(
+        user.id,
+        name,
+        image_url,
+        email
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updatedUser));
+      return true;
+    } catch (error) {
+      handleApiError(res, error, 500, "Failed to update profile");
       return true;
     }
   }
