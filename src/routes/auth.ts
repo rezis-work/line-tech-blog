@@ -4,6 +4,7 @@ import { registerUser, loginUser } from "../services/auth";
 import { handleApiError } from "../utils/error";
 import { getUserFromRequest } from "../middleware/auth";
 import { getPostsByUserId, updateUserProfile } from "../services/user";
+import { createCookie } from "../utils/cookie";
 
 export async function handleAuthRoutes(
   req: IncomingMessage,
@@ -56,11 +57,12 @@ export async function handleAuthRoutes(
         return true;
       }
       const { token, user } = await loginUser(email, password);
+      const isProduction = process.env.NODE_ENV === "production";
       res.writeHead(200, {
         "Content-Type": "application/json",
-        "set-cookie": `token=${token}; HttpOnly; Path=/; Max-Age=${
-          7 * 24 * 60 * 60
-        }`,
+        "Set-Cookie": createCookie("token", token, {
+          maxAge: 7 * 24 * 60 * 60,
+        }),
       });
       res.end(
         JSON.stringify({
