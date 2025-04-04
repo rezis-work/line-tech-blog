@@ -8,6 +8,7 @@ import { handleFavoriteRoutes } from "./routes/favorites";
 import { handleUserRoutes } from "./routes/user";
 import { handleCommentRoutes } from "./routes/comments";
 import { handleAdminDashboardRoutes } from "./routes/admin";
+import { rateLimiter } from "./middleware/rateLimiter";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,10 @@ export function startServer() {
   const server = http.createServer(async (req, res) => {
     try {
       res.setHeader("Content-Type", "application/json");
+
+      if (rateLimiter(req, res)) {
+        return;
+      }
 
       for (const handler of routeHandlers) {
         const handled = await handler(req, res);
