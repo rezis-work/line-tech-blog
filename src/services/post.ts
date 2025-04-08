@@ -1,5 +1,6 @@
 import pool from "../config/db";
 import { refreshPostsSearchView } from "./search";
+import { addTagsToPost, clearTagsFromPost, getTagsForPost } from "./tag";
 
 export async function createPost(
   title: string,
@@ -8,7 +9,8 @@ export async function createPost(
   image_url: string | null,
   author_id: number,
   categoryIds: number[] = [],
-  video_url: string | null = null
+  video_url: string | null = null,
+  tagNames: string[] = []
 ) {
   const client = await pool.connect();
   try {
@@ -34,6 +36,9 @@ export async function createPost(
     }
 
     await client.query("COMMIT");
+    if (tagNames.length > 0) {
+      await addTagsToPost(post.id, tagNames);
+    }
     await refreshPostsSearchView();
     return post;
   } catch (err) {
@@ -203,7 +208,7 @@ export async function getPostBySlug(slug: string) {
     `
      SELECT
       p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
-      u.id AS author_id, u.name AS author_name
+      u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
      FROM posts p
      JOIN users u
      ON p.author_id = u.id
@@ -223,7 +228,10 @@ export async function getPostBySlug(slug: string) {
 
   const categoriesResult = await pool.query(
     `
-     SELECT category_id FROM post_categories WHERE post_id = $1
+     SELECT c.id as category_id, c.name as category_name
+     FROM post_categories pc
+     JOIN categories c ON pc.category_id = c.id
+     WHERE pc.post_id = $1
     `,
     [post.id]
   );
@@ -245,20 +253,23 @@ export async function getPostBySlug(slug: string) {
   const favoriteCount = parseInt(favoriteResult.rows[0].count);
   const commentCount = parseInt(commentResult.rows[0].count);
 
-  const category_ids = categoriesResult.rows.map((row) => row.category_id);
+  const category_names = categoriesResult.rows.map((row) => row.category_name);
+  const tags = await getTagsForPost(post.id);
 
   return {
     id: post.id,
     title: post.title,
     slug: post.slug,
+    tags: tags.map((t) => t.name),
     content: post.content,
     image_url: post.image_url,
     created_at: post.created_at,
     author: {
       id: post.author_id,
       name: post.author_name,
+      image_url: post.author_image_url,
     },
-    category_ids,
+    category_names,
     favorite_count: favoriteCount,
     comment_count: commentCount,
   };
@@ -272,6 +283,7 @@ export async function updatePostBySlug(
     content?: string;
     imageUrl?: string | null;
     categoryIds?: number[];
+    tagNames?: string[];
   }
 ) {
   const client = await pool.connect();
@@ -311,6 +323,11 @@ export async function updatePostBySlug(
           [post.id, categoryId]
         );
       }
+    }
+
+    if (updates.tagNames) {
+      await clearTagsFromPost(post.id);
+      await addTagsToPost(post.id, updates.tagNames);
     }
 
     await client.query("COMMIT");
