@@ -6,7 +6,7 @@ export async function createPost(
   title: string,
   slug: string,
   content: string,
-  image_url: string | null,
+  image_url: string | null = null,
   author_id: number,
   categoryIds: number[] = [],
   video_url: string | null = null,

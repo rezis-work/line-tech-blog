@@ -81,9 +81,8 @@ export async function handlePostRoutes(
     }
 
     try {
-      const { title, slug, content, image_url, category_ids } = await parseBody(
-        req
-      );
+      const { title, slug, content, image_url, category_ids, video_url } =
+        await parseBody(req);
 
       const post = await createPost(
         title,
@@ -91,7 +90,8 @@ export async function handlePostRoutes(
         content,
         image_url,
         user.id,
-        Array.isArray(category_ids) ? category_ids : []
+        Array.isArray(category_ids) ? category_ids : [],
+        video_url
       );
 
       res.writeHead(201, { "Content-Type": "application/json" });
