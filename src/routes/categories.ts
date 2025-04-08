@@ -1,7 +1,12 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parse } from "url";
 import { handleApiError } from "../utils/error";
-import { createCategory, getAllCategories } from "../services/category";
+import {
+  createCategory,
+  deleteCategory,
+  getAllCategories,
+  updateCategory,
+} from "../services/category";
 import { getUserFromRequest } from "../middleware/auth";
 import { parseBody } from "../utils/parseBody";
 import { getAllPosts } from "../services/post";
@@ -59,6 +64,45 @@ export async function handleCategoryRoutes(
       return true;
     } catch (err) {
       handleApiError(res, `${err}`, 500, "Failed to fetch posts");
+      return true;
+    }
+  }
+
+  if (req.method === "PUT" && path.startsWith("/categories/")) {
+    const user = await getUserFromRequest(req);
+    if (!user || user.role !== "admin") {
+      handleApiError(res, "Forbidden", 403, "Forbidden");
+      return true;
+    }
+
+    const id = parseInt(path.split("/")[2]);
+    try {
+      const { name } = await parseBody(req);
+      const category = await updateCategory(id, name);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(category));
+      return true;
+    } catch (error) {
+      handleApiError(res, `${error}`, 400, "Failed to update category");
+      return true;
+    }
+  }
+
+  if (req.method === "DELETE" && path.startsWith("/categories/")) {
+    const user = await getUserFromRequest(req);
+    if (!user || user.role !== "admin") {
+      handleApiError(res, "Forbidden", 403, "Forbidden");
+      return true;
+    }
+
+    const id = parseInt(path.split("/")[2]);
+    try {
+      await deleteCategory(id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Category deleted successfully" }));
+      return true;
+    } catch (error) {
+      handleApiError(res, `${error}`, 400, "Failed to delete category");
       return true;
     }
   }

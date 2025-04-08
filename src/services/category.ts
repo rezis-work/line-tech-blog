@@ -18,3 +18,23 @@ export async function getAllCategories() {
 
   return result.rows;
 }
+
+export async function updateCategory(id: number, name: string) {
+  const result = await pool.query(
+    `
+    UPDATE categories SET name = $1 WHERE id = $2 RETURNING id, name
+    `,
+    [name, id]
+  );
+
+  return result.rows[0];
+}
+
+export async function deleteCategory(id: number) {
+  await pool.query(
+    `
+    DELETE FROM categories WHERE id = $1
+    `,
+    [id]
+  );
+}
