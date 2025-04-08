@@ -10,12 +10,14 @@ import { handleCommentRoutes } from "./routes/comments";
 import { handleAdminDashboardRoutes } from "./routes/admin";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { cors } from "./middleware/cors";
+import { handleBloggerRoutes } from "./routes/bloggers";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
 const routeHandlers = [
   handleUserRoutes,
+  handleBloggerRoutes,
   handleAuthRoutes,
   handlePostRoutes,
   handleCategoryRoutes,

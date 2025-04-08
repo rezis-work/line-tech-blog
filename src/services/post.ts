@@ -6,18 +6,19 @@ export async function createPost(
   content: string,
   image_url: string | null,
   author_id: number,
-  categoryIds: number[] = []
+  categoryIds: number[] = [],
+  video_url: string | null = null
 ) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const postResult = await client.query(
       `
-      INSERT INTO posts (title, slug, content, image_url, author_id)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, title, slug, content, image_url, author_id, created_at
+      INSERT INTO posts (title, slug, content, image_url, author_id, video_url)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, title, slug, content, image_url, author_id, video_url, created_at
       `,
-      [title, slug, content, image_url, author_id]
+      [title, slug, content, image_url, author_id, video_url]
     );
 
     const post = postResult.rows[0];
@@ -52,7 +53,7 @@ export async function getAllPosts(
   let baseQuery = `
     SELECT
       p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
-      u.id AS author_id, u.name AS author_name
+      u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
     FROM posts p
     JOIN users u ON p.author_id = u.id
   `;
@@ -173,6 +174,7 @@ export async function getAllPosts(
       author: {
         id: post.author_id,
         name: post.author_name,
+        image_url: post.author_image_url,
       },
       categories: categoriesByPostId[post.id] || [],
       favorite_count: favoriteCountByPostId[post.id] || 0,
