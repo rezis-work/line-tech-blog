@@ -125,6 +125,7 @@ export async function getAllPosts(
     let categoriesByPostId: Record<number, number[]> = {};
     let favoriteCountByPostId: Record<number, number> = {};
     let commentCountByPostId: Record<number, number> = {};
+    let tagsByPostId: Record<number, string[]> = {};
 
     if (postIds.length > 0) {
       const placeholders = postIds.map((_, index) => `$${index + 1}`).join(",");
@@ -166,6 +167,23 @@ export async function getAllPosts(
       for (const row of commentResult.rows) {
         commentCountByPostId[row.post_id] = parseInt(row.count);
       }
+
+      const tagsResult = await pool.query(
+        `
+         SELECT pt.post_id, t.name as tag_name
+         FROM post_tags pt
+         JOIN tags t ON pt.tag_id = t.id
+         WHERE pt.post_id IN (${placeholders})
+        `,
+        postIds
+      );
+
+      for (const row of tagsResult.rows) {
+        if (!tagsByPostId[row.post_id]) {
+          tagsByPostId[row.post_id] = [];
+        }
+        tagsByPostId[row.post_id].push(row.tag_name);
+      }
     }
 
     const posts = postResult.rows.map((post) => ({
@@ -186,6 +204,7 @@ export async function getAllPosts(
       categories: categoriesByPostId[post.id] || [],
       favorite_count: favoriteCountByPostId[post.id] || 0,
       comment_count: commentCountByPostId[post.id] || 0,
+      tags: tagsByPostId[post.id] || [],
     }));
 
     const total = parseInt(countResult.rows[0].count);
