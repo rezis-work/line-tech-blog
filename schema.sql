@@ -56,3 +56,23 @@ ADD COLUMN IF NOT EXISTS linkedin_url VARCHAR(1000);
 ALTER TABLE posts
 ADD COLUMN IF NOT EXISTS video_url VARCHAR(1000);
 
+
+DROP MATERIALIZED VIEW IF EXISTS posts_search;
+
+
+CREATE MATERIALIZED VIEW posts_search AS
+SELECT
+ p.id AS post_id,
+ setweight(to_tsvector('english', p.title), 'A') ||
+ setweight(to_tsvector('english', p.content), 'B') ||
+ setweight(to_tsvector('english', u.name), 'C') AS document
+FROM posts p
+JOIN users u ON p.author_id = u.id;
+
+
+
+CREATE INDEX posts_search_idx
+ON posts_search
+USING GIN (document);
+
+

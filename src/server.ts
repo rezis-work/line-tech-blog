@@ -11,6 +11,7 @@ import { handleAdminDashboardRoutes } from "./routes/admin";
 import { rateLimiter } from "./middleware/rateLimiter";
 import { cors } from "./middleware/cors";
 import { handleBloggerRoutes } from "./routes/bloggers";
+import { handleSearchRoutes } from "./routes/search";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 const routeHandlers = [
   handleUserRoutes,
   handleBloggerRoutes,
+  handleSearchRoutes,
   handleAuthRoutes,
   handlePostRoutes,
   handleCategoryRoutes,

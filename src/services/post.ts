@@ -1,4 +1,5 @@
 import pool from "../config/db";
+import { refreshPostsSearchView } from "./search";
 
 export async function createPost(
   title: string,
@@ -33,6 +34,7 @@ export async function createPost(
     }
 
     await client.query("COMMIT");
+    await refreshPostsSearchView();
     return post;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -312,6 +314,7 @@ export async function updatePostBySlug(
     }
 
     await client.query("COMMIT");
+    await refreshPostsSearchView();
     return post;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -335,4 +338,41 @@ export async function deletePostBySlug(slug: string) {
   }
 
   return result.rows[0];
+}
+
+export async function searchPosts(query: string, page = 1, limit = 5) {
+  const offset = (page - 1) * limit;
+
+  const result = await pool.query(
+    `
+    SELECT
+     p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
+     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url,
+     ts_rank_cd(ps.document, plainto_tsquery('english', $1)) AS rank
+    FROM posts_search ps
+    JOIN posts p ON ps.post_id = p.id
+    JOIN users u ON p.author_id = u.id
+    WHERE ps.document @@ plainto_tsquery('english', $1)
+    ORDER BY rank DESC, p.created_at DESC
+    LIMIT $2 OFFSET $3
+    `,
+    [query, limit, offset]
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    excerpt:
+      row.content.length > 200
+        ? row.content.slice(0, 200) + "..."
+        : row.content,
+    image_url: row.image_url,
+    created_at: row.created_at,
+    author: {
+      id: row.author_id,
+      name: row.author_name,
+      image_url: row.author_image_url,
+    },
+  }));
 }

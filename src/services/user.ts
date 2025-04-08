@@ -1,5 +1,5 @@
 import pool from "../config/db";
-
+import { refreshPostsSearchView } from "./search";
 export async function getPostsByUserId(userId: number) {
   const result = await pool.query(
     `
@@ -90,4 +90,6 @@ export async function updateAdminProfile(
       userId,
     ]
   );
+
+  await refreshPostsSearchView();
 }
