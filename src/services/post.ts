@@ -226,7 +226,7 @@ export async function getPostBySlug(slug: string) {
   const result = await pool.query(
     `
      SELECT
-      p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
+      p.id, p.title, p.slug, p.content, p.image_url, p.created_at, p.video_url,
       u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
      FROM posts p
      JOIN users u
@@ -282,6 +282,7 @@ export async function getPostBySlug(slug: string) {
     tags: tags.map((t) => t.name),
     content: post.content,
     image_url: post.image_url,
+    video_url: post.video_url,
     created_at: post.created_at,
     author: {
       id: post.author_id,
@@ -301,6 +302,7 @@ export async function updatePostBySlug(
     newSlug?: string;
     content?: string;
     imageUrl?: string | null;
+    videoUrl?: string | null;
     categoryIds?: number[];
     tagNames?: string[];
   }
@@ -315,11 +317,19 @@ export async function updatePostBySlug(
         title = COALESCE($1, title),
         slug = COALESCE($2, slug),
         content = COALESCE($3, content),
-        image_url = COALESCE($4, image_url)
-      WHERE slug = $5
-      RETURNING id, title, slug, content, image_url, created_at
+        image_url = COALESCE($4, image_url),
+        video_url = COALESCE($5, video_url)
+      WHERE slug = $6
+      RETURNING id, title, slug, content, image_url, video_url, created_at
       `,
-      [updates.title, updates.newSlug, updates.content, updates.imageUrl, slug]
+      [
+        updates.title,
+        updates.newSlug,
+        updates.content,
+        updates.imageUrl,
+        updates.videoUrl,
+        slug,
+      ]
     );
 
     const post = postResult.rows[0];
@@ -404,6 +414,32 @@ export async function searchPosts(query: string, page = 1, limit = 5) {
         ? row.content.slice(0, 200) + "..."
         : row.content,
     image_url: row.image_url,
+    created_at: row.created_at,
+    author: {
+      id: row.author_id,
+      name: row.author_name,
+      image_url: row.author_image_url,
+    },
+  }));
+}
+
+export async function getPostsWithVideos() {
+  const result = await pool.query(`
+    SELECT p.id, p.title, p.slug, p.image_url, p.created_at, p.video_url,
+    u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+    FROM posts p
+    JOIN users u ON p.author_id = u.id
+    WHERE p.video_url IS NOT NULL
+    ORDER BY p.created_at DESC
+    LIMIT 20
+    `);
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    image_url: row.image_url,
+    video_url: row.video_url,
     created_at: row.created_at,
     author: {
       id: row.author_id,

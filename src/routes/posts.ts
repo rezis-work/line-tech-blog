@@ -6,6 +6,7 @@ import {
   getPostBySlug,
   updatePostBySlug,
   deletePostBySlug,
+  getPostsWithVideos,
 } from "../services/post";
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
@@ -171,6 +172,18 @@ export async function handlePostRoutes(
       return true;
     } catch (error) {
       handleApiError(res, `${error}`, 400, "Failed to delete post");
+      return true;
+    }
+  }
+
+  if (req.method === "GET" && path === "/videos") {
+    try {
+      const posts = await getPostsWithVideos();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(posts));
+      return true;
+    } catch (error) {
+      handleApiError(res, `${error}`, 500, "Failed to fetch videos");
       return true;
     }
   }
