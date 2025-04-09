@@ -54,7 +54,8 @@ export async function getAllPosts(
   page = 1,
   limit = 5,
   query?: string,
-  sort?: "newest" | "popular" | "commented"
+  sort?: "newest" | "popular" | "commented",
+  tagName?: string
 ) {
   const offset = (page - 1) * limit;
   let baseQuery = `
@@ -82,6 +83,14 @@ export async function getAllPosts(
     countQuery += ` JOIN post_categories pc ON pc.post_id = p.id`;
     whereClauses.push(`pc.category_id = $${paramIndex}`);
     params.push(categoryId);
+    paramIndex++;
+  }
+
+  if (tagName) {
+    baseQuery += ` JOIN post_tags pt ON pt.post_id = p.id JOIN tags t ON pt.tag_id = t.id`;
+    countQuery += ` JOIN post_tags pt ON pt.post_id = p.id JOIN tags t ON pt.tag_id = t.id`;
+    whereClauses.push(`t.name = $${paramIndex}`);
+    params.push(tagName.toLowerCase());
     paramIndex++;
   }
 
@@ -122,6 +131,7 @@ export async function getAllPosts(
     ]);
 
     const postIds = postResult.rows.map((p) => p.id);
+
     let categoriesByPostId: Record<number, number[]> = {};
     let favoriteCountByPostId: Record<number, number> = {};
     let commentCountByPostId: Record<number, number> = {};

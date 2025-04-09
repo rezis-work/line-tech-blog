@@ -26,6 +26,7 @@ export async function handlePostRoutes(
     const categoryParam = parsedUrl.searchParams.get("category");
     const pageParam = parsedUrl.searchParams.get("page");
     const limitParam = parsedUrl.searchParams.get("limit");
+    const tagNameParam = parsedUrl.searchParams.get("tag");
     const queryParam = parsedUrl.searchParams.get("query");
     const sortParam = parsedUrl.searchParams.get("sort") as
       | "newest"
@@ -41,7 +42,8 @@ export async function handlePostRoutes(
         page,
         limit,
         queryParam || undefined,
-        sortParam || "newest"
+        sortParam || "newest",
+        tagNameParam || undefined
       );
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
@@ -81,8 +83,15 @@ export async function handlePostRoutes(
     }
 
     try {
-      const { title, slug, content, image_url, category_ids, video_url } =
-        await parseBody(req);
+      const {
+        title,
+        slug,
+        content,
+        image_url,
+        category_ids,
+        video_url,
+        tag_names,
+      } = await parseBody(req);
 
       const post = await createPost(
         title,
@@ -91,7 +100,8 @@ export async function handlePostRoutes(
         image_url,
         user.id,
         Array.isArray(category_ids) ? category_ids : [],
-        video_url
+        video_url,
+        tag_names
       );
 
       res.writeHead(201, { "Content-Type": "application/json" });
@@ -139,6 +149,7 @@ export async function handlePostRoutes(
         content: body.content,
         imageUrl: body.image_url,
         categoryIds: body.category_ids,
+        tagNames: body.tag_names,
       });
 
       if (!updated) {
