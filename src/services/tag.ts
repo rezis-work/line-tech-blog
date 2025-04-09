@@ -58,3 +58,24 @@ export async function getTagsForPost(postId: number) {
 
   return result.rows;
 }
+
+export async function getTrendingTags(limit = 10) {
+  const result = await pool.query(
+    `
+    SELECT 
+     t.id, t.name, COUNT(pt.post_id) as usage_count
+    FROM tags t
+    JOIN post_tags pt ON pt.tag_id = t.id
+    GROUP BY t.id
+    ORDER BY usage_count DESC
+    LIMIT $1
+    `,
+    [limit]
+  );
+
+  return result.rows.map((tag) => ({
+    id: tag.id,
+    name: tag.name,
+    usageCount: parseInt(tag.usage_count),
+  }));
+}
