@@ -237,7 +237,7 @@ export async function getPostBySlug(slug: string) {
     `
      SELECT
       p.id, p.title, p.slug, p.content, p.image_url, p.created_at, p.video_url,
-      u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+      u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url, u.bio AS author_bio
      FROM posts p
      JOIN users u
      ON p.author_id = u.id
@@ -298,6 +298,7 @@ export async function getPostBySlug(slug: string) {
       id: post.author_id,
       name: post.author_name,
       image_url: post.author_image_url,
+      bio: post.author_bio,
     },
     category_names,
     favorite_count: favoriteCount,
