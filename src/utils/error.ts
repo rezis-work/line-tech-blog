@@ -15,6 +15,7 @@ export function handleApiError(
 
   if (error instanceof Error) {
     res.statusCode = 401;
+    console.error(error.message);
     res.end(JSON.stringify({ error: error.message }));
   } else {
     res.statusCode = defaultStatusCode;

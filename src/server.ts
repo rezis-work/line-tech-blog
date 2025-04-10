@@ -14,7 +14,7 @@ import { handleBloggerRoutes } from "./routes/bloggers";
 import { handleSearchRoutes } from "./routes/search";
 import { handleTagRoutes } from "./routes/tags";
 import { handleRelatedPostsRoute } from "./routes/relatedPosts";
-
+import { handleNextPrevPostsRoute } from "./routes/nextPrevPosts";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -25,6 +25,7 @@ const routeHandlers = [
   handleSearchRoutes,
   handleTagRoutes,
   handleRelatedPostsRoute,
+  handleNextPrevPostsRoute,
   handleAuthRoutes,
   handlePostRoutes,
   handleCategoryRoutes,

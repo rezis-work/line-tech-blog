@@ -527,3 +527,60 @@ export async function getRelatedPosts(postId: number, limit = 2) {
 
   return relatedPosts;
 }
+
+export async function getNextAndPrevPosts(slug: string) {
+  const { rows: postRows } = await pool.query(
+    `
+     Select p.id, p.title, p.slug, p.created_at, p.image_url, p.content,
+     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+     FROM posts p
+     JOIN users u ON p.author_id = u.id
+     WHERE p.slug = $1
+    `,
+    [slug]
+  );
+
+  const currentPost = postRows[0];
+  if (!currentPost) {
+    return null;
+  }
+
+  const { id: postId, created_at: createdAt } = currentPost;
+
+  const { rows: nextRows } = await pool.query(
+    `
+    SELECT p.id, p.title, p.slug, p.created_at, p.image_url, 
+    u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+    FROM posts p
+    JOIN users u ON p.author_id = u.id
+    WHERE p.created_at > $1
+    ORDER BY created_at ASC
+    LIMIT 1
+    
+    `,
+    [createdAt]
+  );
+
+  const nextPost = nextRows[0];
+
+  const { rows: prevRows } = await pool.query(
+    `
+    SELECT p.id, p.title, p.slug, p.created_at, p.image_url,
+    u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+    FROM posts p
+    JOIN users u ON p.author_id = u.id
+    WHERE p.created_at < $1
+    ORDER BY created_at DESC
+    LIMIT 1
+
+  `,
+    [createdAt]
+  );
+
+  const prevPost = prevRows[0];
+
+  return {
+    prev: prevPost,
+    next: nextPost,
+  };
+}
