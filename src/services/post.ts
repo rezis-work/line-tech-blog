@@ -458,3 +458,71 @@ export async function getPostsWithVideos() {
     },
   }));
 }
+
+export async function getRelatedPosts(postId: number, limit = 2) {
+  const { rows: tagCategoryRows } = await pool.query(
+    `
+     SELECT 
+      t.id AS tag_id,
+      c.id AS category_id
+     FROM posts p
+     LEFT JOIN post_tags pt ON p.id = pt.post_id
+     LEFT JOIN tags t ON pt.tag_id = t.id
+     LEFT JOIN post_categories pc ON p.id = pc.post_id
+     LEFT JOIN categories c ON pc.category_id = c.id
+     WHERE p.id = $1
+    `,
+    [postId]
+  );
+
+  const tagIds = tagCategoryRows.map((row) => row.tag_id).filter(Boolean);
+  const categoryIds = tagCategoryRows
+    .map((row) => row.category_id)
+    .filter(Boolean);
+
+  if (tagIds.length === 0 && categoryIds.length === 0) {
+    const { rows } = await pool.query(
+      `
+      SELECT id, title, slug, image_url, created_at
+      FROM posts
+      WHERE id != $1
+      ORDER BY created_at DESC
+      LIMIT $2
+      `,
+      [postId, limit]
+    );
+
+    return rows;
+  }
+
+  const tagPlaceholders = tagIds.map((_, index) => `$${index + 2}`).join(",");
+  const catPlaceholders = categoryIds
+    .map((_, index) => `$${index + 2 + tagIds.length}`)
+    .join(",");
+
+  const queryParams = [postId, ...tagIds, ...categoryIds];
+
+  const { rows: relatedPosts } = await pool.query(
+    `
+     SELECT DISTINCT p.id, p.title, p.slug, p.image_url, p.created_at,
+     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+     FROM posts p
+     JOIN users u ON p.author_id = u.id
+     LEFT JOIN post_tags pt ON p.id = pt.post_id
+     LEFT JOIN post_categories pc ON p.id = pc.post_id
+     WHERE p.id != $1
+       AND (
+        ${tagIds.length > 0 ? `pt.tag_id IN (${tagPlaceholders})` : ""}
+        ${tagIds.length > 0 && categoryIds.length > 0 ? "OR" : ""}
+        ${
+          categoryIds.length > 0 ? `pc.category_id IN (${catPlaceholders})` : ""
+        }
+       )
+     ORDER BY p.created_at DESC
+     LIMIT ${limit}
+    `,
+    queryParams
+  );
+
+  return relatedPosts;
+}

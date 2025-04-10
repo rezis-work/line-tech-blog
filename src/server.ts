@@ -13,6 +13,8 @@ import { cors } from "./middleware/cors";
 import { handleBloggerRoutes } from "./routes/bloggers";
 import { handleSearchRoutes } from "./routes/search";
 import { handleTagRoutes } from "./routes/tags";
+import { handleRelatedPostsRoute } from "./routes/relatedPosts";
+
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -22,6 +24,7 @@ const routeHandlers = [
   handleBloggerRoutes,
   handleSearchRoutes,
   handleTagRoutes,
+  handleRelatedPostsRoute,
   handleAuthRoutes,
   handlePostRoutes,
   handleCategoryRoutes,
