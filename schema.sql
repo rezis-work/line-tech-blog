@@ -87,4 +87,6 @@ CREATE TABLE IF NOT EXISTS post_tags (
   PRIMARY KEY (post_id, tag_id)
 );
 
+ALTER TABLE comments
+ADD COLUMN IF NOT EXISTS parent_comment_id INT REFERENCES comments(id) ON DELETE CASCADE;
 

@@ -3,42 +3,64 @@ import pool from "../config/db";
 export async function createComment(
   userId: number,
   postId: number,
-  content: string
+  content: string,
+  parentCommentId?: number
 ) {
   const result = await pool.query(
     `
-    INSERT INTO comments (user_id, post_id, content)
-    VALUES ($1, $2, $3)
+    INSERT INTO comments (user_id, post_id, content, parent_comment_id)
+    VALUES ($1, $2, $3, $4)
     RETURNING id, user_id, post_id, content, created_at
     `,
-    [userId, postId, content]
+    [userId, postId, content, parentCommentId || null]
   );
 
   return result.rows[0];
 }
 
 export async function getCommentsByPostId(postId: number) {
-  const result = await pool.query(
+  const { rows } = await pool.query(
     `
     SELECT
-     c.id, c.content, c.created_at, u.id as user_id, u.name as user_name
+     c.id, c.content, c.created_at, c.parent_comment_id, u.id as user_id, u.name as user_name
     FROM comments c
     JOIN users u ON c.user_id = u.id
     WHERE c.post_id = $1
-    ORDER BY c.created_at DESC
+    ORDER BY c.created_at ASC
     `,
     [postId]
   );
 
-  return result.rows.map((comment) => ({
-    id: comment.id,
-    content: comment.content,
-    createdAt: comment.created_at,
-    user: {
-      id: comment.user_id,
-      name: comment.user_name,
-    },
-  }));
+  const comments: Record<number, any> = {};
+  const topLevelComments: any[] = [];
+
+  for (const row of rows) {
+    const comment = {
+      id: row.id,
+      content: row.content,
+      createdAt: row.created_at,
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+        imageUrl: row.user_image_url,
+      },
+      replies: [],
+    };
+
+    comments[comment.id] = comment;
+
+    if (row.parent_comment_id) {
+      if (comments[row.parent_comment_id]) {
+        comments[row.parent_comment_id].replies.push(comment);
+      } else {
+        comments[row.parent_comment_id] = { replies: [comment] };
+      }
+    } else {
+      topLevelComments.push(comment);
+    }
+  }
+
+  return topLevelComments;
 }
 
 export async function deleteCommentAsAdminOrOwner(

@@ -7,6 +7,7 @@ import {
   updatePostBySlug,
   deletePostBySlug,
   getPostsWithVideos,
+  getPostsByTags,
 } from "../services/post";
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
@@ -22,6 +23,30 @@ export async function handlePostRoutes(
   );
   const path = parsedUrl.pathname;
 
+  if (req.method === "GET" && path === "/posts/tags") {
+    const tagsParam = parsedUrl.searchParams.get("tags");
+
+    if (!tagsParam) {
+      handleApiError(res, "No tags provided", 400);
+      return true;
+    }
+
+    const tags = tagsParam.split(",").map((t) => t.trim());
+    const page = parseInt(parsedUrl.searchParams.get("page") || "1");
+    const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
+
+    try {
+      const result = await getPostsByTags(tags, page, limit);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result));
+      return true;
+    } catch (error) {
+      console.error(error);
+      handleApiError(res, `${error}`, 500, "Failed to fetch posts by tags");
+      return true;
+    }
+  }
+
   if (req.method === "GET" && path === "/posts") {
     const categoryParam = parsedUrl.searchParams.get("category");
     const pageParam = parsedUrl.searchParams.get("page");
@@ -35,6 +60,7 @@ export async function handlePostRoutes(
     const categoryId = categoryParam ? parseInt(categoryParam) : undefined;
     const page = pageParam ? parseInt(pageParam) : 1;
     const limit = limitParam ? parseInt(limitParam) : 5;
+    console.log(categoryId);
 
     try {
       const result = await getAllPosts(
@@ -49,7 +75,6 @@ export async function handlePostRoutes(
       res.end(JSON.stringify(result));
       return true;
     } catch (err) {
-      console.error(err);
       handleApiError(res, `${err}`, 500, "Failed to fetch posts");
       return true;
     }

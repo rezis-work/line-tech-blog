@@ -74,7 +74,6 @@ export async function getAllPosts(
 
   const params: (string | number)[] = [];
   let paramIndex = 1;
-
   const whereClauses: string[] = [];
   let orderByClause = `ORDER BY p.created_at DESC`;
 
@@ -582,5 +581,78 @@ export async function getNextAndPrevPosts(slug: string) {
   return {
     prev: prevPost,
     next: nextPost,
+  };
+}
+
+export async function getPostsByTags(tags: string[], page = 1, limit = 5) {
+  if (tags.length === 0) {
+    throw new Error("No tags provided");
+  }
+
+  console.log(tags);
+
+  const offset = (page - 1) * limit;
+
+  const tagPlaceholders = tags.map((_, index) => `$${index + 1}`).join(",");
+  const limitPlaceholder = `$${tags.length + 1}`;
+  const offsetPlaceholder = `$${tags.length + 2}`;
+  const params: (string | number)[] = [
+    ...tags.map((t) => t.toLowerCase()),
+    limit,
+    offset,
+  ];
+
+  const postsResult = await pool.query(
+    `
+    SELECT DISTINCT p.id, p.title, p.slug, p.image_url, p.created_at, p.content,
+    u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+    FROM posts p
+    JOIN users u ON p.author_id = u.id
+    JOIN post_tags pt ON pt.post_id = p.id
+    JOIN tags t ON pt.tag_id = t.id
+    WHERE t.name IN (${tagPlaceholders})
+    ORDER BY p.created_at DESC
+    LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}
+
+    `,
+    params
+  );
+
+  const totalResult = await pool.query(
+    `
+     SELECT COUNT(DISTINCT p.id) AS count
+     FROM posts p
+     JOIN post_tags pt ON pt.post_id = p.id
+     JOIN tags t ON pt.tag_id = t.id
+     WHERE t.name IN (${tagPlaceholders})
+    `,
+    tags.map((t) => t.toLowerCase())
+  );
+
+  const posts = postsResult.rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    excerpt:
+      row.content.length > 200
+        ? row.content.slice(0, 200) + "..."
+        : row.content,
+    image_url: row.image_url,
+    created_at: row.created_at,
+    author: {
+      id: row.author_id,
+      name: row.author_name,
+      image_url: row.author_image_url,
+    },
+  }));
+
+  const total = parseInt(totalResult.rows[0].count);
+
+  return {
+    page,
+    limit,
+    total,
+    hasMore: total > offset + limit,
+    posts,
   };
 }
