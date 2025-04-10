@@ -38,3 +38,23 @@ export async function deleteCategory(id: number) {
     [id]
   );
 }
+
+export async function getTopCategories(limit: number = 5) {
+  const { rows } = await pool.query(
+    `
+    SELECT c.id, c.name, COUNT(pc.post_id) AS post_count
+    FROM categories c
+    LEFT JOIN post_categories pc ON c.id = pc.category_id
+    GROUP BY c.id
+    ORDER BY post_count DESC
+    LIMIT $1
+    `,
+    [limit]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    postCount: row.post_count,
+  }));
+}

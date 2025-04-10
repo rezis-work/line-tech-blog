@@ -15,6 +15,7 @@ import { handleSearchRoutes } from "./routes/search";
 import { handleTagRoutes } from "./routes/tags";
 import { handleRelatedPostsRoute } from "./routes/relatedPosts";
 import { handleNextPrevPostsRoute } from "./routes/nextPrevPosts";
+import { handleCategoriesSidebarRoute } from "./routes/categoriesSidebar";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ const routeHandlers = [
   handleTagRoutes,
   handleRelatedPostsRoute,
   handleNextPrevPostsRoute,
+  handleCategoriesSidebarRoute,
   handleAuthRoutes,
   handlePostRoutes,
   handleCategoryRoutes,
