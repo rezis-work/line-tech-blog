@@ -577,7 +577,7 @@ export async function getNextAndPrevPosts(slug: string) {
     LIMIT 1
     
     `,
-    [createdAt]
+    [createdAt, postId]
   );
 
   const nextPost = nextRows[0];
