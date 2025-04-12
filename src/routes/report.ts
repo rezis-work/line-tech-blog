@@ -3,6 +3,9 @@ import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
 import { parseBody } from "../utils/parseBody";
 import { reportComment, reportPost } from "../services/report";
+import { getPostById } from "../services/post";
+import { createNotification } from "../services/notification";
+import pool from "../config/db";
 
 export async function handleReportRoutes(
   req: IncomingMessage,
@@ -34,6 +37,17 @@ export async function handleReportRoutes(
 
       await reportPost(user.id, parseInt(postId), reason);
 
+      const post = await getPostById(parseInt(postId));
+
+      if (post && post.author_id !== user.id) {
+        await createNotification(
+          post.author_id,
+          "report",
+          `${user.name} reported your post`,
+          parseInt(postId)
+        );
+      }
+
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Post reported successfully" }));
       return true;
@@ -62,6 +76,25 @@ export async function handleReportRoutes(
       }
 
       await reportComment(user.id, parseInt(commentId), reason);
+
+      const parentComment = await pool.query(
+        `
+        SELECT user_id FROM comments WHERE id = $1
+        `,
+        [parseInt(commentId)]
+      );
+
+      if (
+        parentComment.rows.length > 0 &&
+        parentComment.rows[0].user_id !== user.id
+      ) {
+        await createNotification(
+          parentComment.rows[0].user_id,
+          "report",
+          "hidden user reported your comment",
+          parseInt(commentId)
+        );
+      }
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ message: "Comment reported successfully" }));

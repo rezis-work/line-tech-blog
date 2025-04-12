@@ -9,6 +9,9 @@ import {
   updateCommentById,
 } from "../services/comment";
 import { getUserFromRequest } from "../middleware/auth";
+import { createNotification } from "../services/notification";
+import pool from "../config/db";
+import { getPostById } from "../services/post";
 
 export async function handleCommentRoutes(
   req: IncomingMessage,
@@ -37,6 +40,16 @@ export async function handleCommentRoutes(
       }
 
       const comment = await createComment(user.id, postId, content.trim());
+      const post = await getPostById(postId);
+
+      if (post && post.author_id !== user.id) {
+        await createNotification(
+          post.author_id,
+          "comment",
+          `${user.name} commented on your post`,
+          postId
+        );
+      }
       res.writeHead(201, { "Content-Type": "application/json" });
       res.end(JSON.stringify(comment));
       return true;
@@ -123,6 +136,64 @@ export async function handleCommentRoutes(
       return true;
     } catch (error) {
       handleApiError(res, error, 500, "Failed to update comment");
+      return true;
+    }
+  }
+
+  if (
+    req.method === "POST" &&
+    path.startsWith("/comments/") &&
+    path.includes("/reply")
+  ) {
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    const segments = path.split("/");
+    const parentCommentId = parseInt(segments[2]);
+    const postId = parseInt(segments[4]);
+
+    try {
+      const { content } = await parseBody(req);
+      if (!content || content.trim() === "") {
+        handleApiError(res, "Content is required", 400);
+        return true;
+      }
+
+      const reply = await createComment(
+        user.id,
+        postId,
+        content.trim(),
+        parentCommentId
+      );
+
+      const parentCommentUser = await pool.query(
+        `
+        SELECT user_id FROM comments WHERE id = $1
+        `,
+        [parentCommentId]
+      );
+
+      if (
+        parentCommentUser.rows.length > 0 &&
+        parentCommentUser.rows[0].user_id !== user.id
+      ) {
+        await createNotification(
+          parentCommentUser.rows[0].user_id,
+          "reply",
+          `${user.name} replied to your comment`,
+          postId,
+          parentCommentId
+        );
+      }
+
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(reply));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to create reply");
       return true;
     }
   }

@@ -305,6 +305,26 @@ export async function getPostBySlug(slug: string) {
   };
 }
 
+export async function getPostById(id: number) {
+  const result = await pool.query(
+    `
+    SELECT
+     p.id, p.title, p.slug, p.content, p.image_url, p.created_at, p.video_url,
+     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url, u.bio AS author_bio
+    FROM posts p
+    JOIN users u ON p.author_id = u.id
+    WHERE p.id = $1
+    `,
+    [id]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Post not found");
+  }
+
+  return result.rows[0];
+}
+
 export async function updatePostBySlug(
   slug: string,
   updates: {

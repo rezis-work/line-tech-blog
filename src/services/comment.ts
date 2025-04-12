@@ -22,7 +22,7 @@ export async function getCommentsByPostId(postId: number) {
   const { rows } = await pool.query(
     `
     SELECT
-     c.id, c.content, c.created_at, c.parent_comment_id, u.id as user_id, u.name as user_name
+     c.id, c.content, c.created_at, c.parent_comment_id, u.id as user_id, u.name as user_name, u.image_url as user_image_url
     FROM comments c
     JOIN users u ON c.user_id = u.id
     WHERE c.post_id = $1
