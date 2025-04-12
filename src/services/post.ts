@@ -573,7 +573,7 @@ export async function getNextAndPrevPosts(slug: string) {
     FROM posts p
     JOIN users u ON p.author_id = u.id
     WHERE p.created_at > $1 OR (p.created_at = $1 AND p.id > $2)
-    ORDER BY created_at ASC, id ASC
+    ORDER BY p.created_at ASC, p.id ASC
     LIMIT 1
     
     `,
@@ -588,12 +588,12 @@ export async function getNextAndPrevPosts(slug: string) {
     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
     FROM posts p
     JOIN users u ON p.author_id = u.id
-    WHERE p.created_at < $1
-    ORDER BY created_at DESC
+    WHERE p.created_at < $1 OR (p.created_at = $1 AND p.id < $2)
+    ORDER BY p.created_at DESC, p.id DESC
     LIMIT 1
 
   `,
-    [createdAt]
+    [createdAt, postId]
   );
 
   const prevPost = prevRows[0];
