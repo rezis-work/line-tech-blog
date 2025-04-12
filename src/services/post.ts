@@ -572,8 +572,8 @@ export async function getNextAndPrevPosts(slug: string) {
     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
     FROM posts p
     JOIN users u ON p.author_id = u.id
-    WHERE p.created_at > $1
-    ORDER BY created_at ASC
+    WHERE p.created_at > $1 OR (p.created_at = $1 AND p.id > $2)
+    ORDER BY created_at ASC, id ASC
     LIMIT 1
     
     `,
