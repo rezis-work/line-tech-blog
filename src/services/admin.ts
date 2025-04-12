@@ -186,3 +186,63 @@ export async function getAdminPersonalAnalytics(adminId: number) {
     favorites: favoriteResult.rows,
   };
 }
+
+export async function getReportedPosts() {
+  const result = await pool.query(`
+    SELECT 
+     r.id AS report_id,
+     p.id AS post_id,
+     p.title,
+     p.slug,
+     r.reason,
+     r.created_at,
+     u.id AS user_id,
+     u.name AS user_name
+    FROM reports r
+    JOIN posts p ON r.post_id = p.id
+    JOIN users u ON r.user_id = u.id
+    WHERE r.post_id IS NOT NULL
+    ORDER BY r.created_at DESC
+    `);
+
+  return result.rows;
+}
+
+export async function getReportedComments() {
+  const result = await pool.query(`
+    SELECT 
+     r.id AS report_id,
+     c.id AS comment_id,
+     c.content,
+     c.created_at,
+     r.reason,
+     r.created_at,
+     u.id AS user_id,
+     u.name AS user_name
+    FROM reports r
+    JOIN comments c ON r.comment_id = c.id
+    JOIN users u ON r.user_id = u.id
+    WHERE r.comment_id IS NOT NULL
+    ORDER BY r.created_at DESC
+  `);
+
+  return result.rows;
+}
+
+export async function deletePost(postId: number) {
+  await pool.query(
+    `
+    DELETE FROM posts WHERE id = $1
+    `,
+    [postId]
+  );
+}
+
+export async function deleteComment(commentId: number) {
+  await pool.query(
+    `
+    DELETE FROM comments WHERE id = $1
+    `,
+    [commentId]
+  );
+}
