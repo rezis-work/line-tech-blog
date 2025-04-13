@@ -30,13 +30,42 @@ export async function getUserNotifications(userId: number) {
   return result.rows;
 }
 
-export async function markNotificationsAsRead(notificationId: number) {
-  await pool.query(
+export async function markNotificationsAsRead(
+  notificationId: number,
+  userId: number
+) {
+  const { rows } = await pool.query(
     `
     UPDATE notifications
     SET is_read = TRUE
-    WHERE id = $1
+    WHERE id = $1 AND user_id = $2
     `,
-    [notificationId]
+    [notificationId, userId]
   );
+
+  return rows[0];
+}
+
+export async function getUnreadNotificationCount(userId: number) {
+  const { rows } = await pool.query(
+    `
+    SELECT COUNT(*) FROM notifications
+    WHERE user_id = $1 AND is_read = FALSE
+    `,
+    [userId]
+  );
+
+  return parseInt(rows[0].count, 10);
+}
+
+export async function clearAllNotifications(userId: number) {
+  await pool.query(
+    `
+    DELETE FROM notifications
+    WHERE user_id = $1
+    `,
+    [userId]
+  );
+
+  return true;
 }

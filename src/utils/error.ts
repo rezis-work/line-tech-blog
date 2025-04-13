@@ -19,6 +19,7 @@ export function handleApiError(
     res.end(JSON.stringify({ error: error.message }));
   } else {
     res.statusCode = defaultStatusCode;
+    console.error(error);
     res.end(JSON.stringify({ error: errorMessage }));
   }
 }

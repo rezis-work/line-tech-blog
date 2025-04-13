@@ -18,6 +18,7 @@ import { handleNextPrevPostsRoute } from "./routes/nextPrevPosts";
 import { handleCategoriesSidebarRoute } from "./routes/categoriesSidebar";
 import { handleReportRoutes } from "./routes/report";
 import { handleHomepageRoutes } from "./routes/homepage";
+import { handleNotificationsRoutes } from "./routes/notifications";
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ const routeHandlers = [
   handlePostRoutes,
   handleHomepageRoutes,
   handleAuthRoutes,
+  handleNotificationsRoutes,
   handleCategoryRoutes,
   handleFavoriteRoutes,
   handleCommentRoutes,
