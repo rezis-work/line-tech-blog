@@ -1,4 +1,5 @@
 import pool from "../config/db";
+import { getCache, setCache } from "../config/cache";
 
 export async function getTopPostsByCategory(limitPerCategory = 3) {
   try {
@@ -42,6 +43,11 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
 }
 
 export async function getTrendingPosts(limit = 10) {
+  const cacheKey = `trending_posts:${limit}`;
+  const cached = await getCache<any[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
   try {
     const result = await pool.query(
       `
@@ -59,7 +65,7 @@ export async function getTrendingPosts(limit = 10) {
       [limit]
     );
 
-    return result.rows.map((post) => ({
+    const trendingPosts = result.rows.map((post) => ({
       id: post.id,
       title: post.title,
       slug: post.slug,
@@ -72,6 +78,10 @@ export async function getTrendingPosts(limit = 10) {
       },
       favorite_count: post.total_favorites,
     }));
+
+    await setCache(cacheKey, trendingPosts, 3600);
+
+    return trendingPosts;
   } catch (err) {
     console.error("Error fetching trending posts", err);
     throw new Error("Failed to fetch trending posts");
