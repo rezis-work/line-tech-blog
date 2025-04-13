@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { handleApiError } from "../utils/error";
-import { getTopPostsByCategory } from "../services/homepage";
+import { getTopPostsByCategory, getTrendingPosts } from "../services/homepage";
 
 export async function handleHomepageRoutes(
   req: IncomingMessage,
@@ -20,6 +20,18 @@ export async function handleHomepageRoutes(
       return true;
     } catch (err) {
       handleApiError(res, err, 500, "Failed to fetch top posts by category");
+      return true;
+    }
+  }
+
+  if (req.method === "GET" && path === "/homepage/trending") {
+    try {
+      const result = await getTrendingPosts();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to fetch trending posts");
       return true;
     }
   }
