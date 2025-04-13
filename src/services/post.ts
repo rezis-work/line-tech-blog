@@ -1,4 +1,8 @@
 import pool from "../config/db";
+import {
+  invalidateBestByCategory,
+  invalidateTrendingPosts,
+} from "./cacheService";
 import { refreshPostsSearchView } from "./search";
 import { addTagsToPost, clearTagsFromPost, getTagsForPost } from "./tag";
 
@@ -27,6 +31,7 @@ export async function createPost(
     const post = postResult.rows[0];
 
     for (const categoryId of categoryIds) {
+      await invalidateBestByCategory(categoryId.toString());
       await client.query(
         `
          INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)
@@ -40,6 +45,7 @@ export async function createPost(
       await addTagsToPost(post.id, tagNames);
     }
     await refreshPostsSearchView();
+    await invalidateTrendingPosts();
     return post;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -375,6 +381,7 @@ export async function updatePostBySlug(
       ]);
 
       for (const categoryId of updates.categoryIds) {
+        await invalidateBestByCategory(categoryId.toString());
         await client.query(
           `
           INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)
@@ -390,6 +397,7 @@ export async function updatePostBySlug(
     }
 
     await client.query("COMMIT");
+    await invalidateTrendingPosts();
     await refreshPostsSearchView();
     return post;
   } catch (err) {
@@ -401,19 +409,54 @@ export async function updatePostBySlug(
 }
 
 export async function deletePostBySlug(slug: string) {
-  const result = await pool.query(
-    `
-     DELETE FROM posts WHERE slug = $1
-     RETURNING id, title, slug
-    `,
-    [slug]
-  );
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  if (result.rows.length === 0) {
-    throw new Error("Post not found");
+    const postResult = await client.query(
+      `
+      SELECT id FROM posts WHERE slug = $1
+      `,
+      [slug]
+    );
+
+    if (postResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      throw new Error("Post not found");
+    }
+
+    const postId = postResult.rows[0].id;
+
+    const categoriesResult = await client.query(
+      `
+      SELECT category_id FROM post_categories WHERE post_id = $1
+      `,
+      [postId]
+    );
+
+    const categoryIds = categoriesResult.rows.map((row) => row.category_id);
+
+    await client.query("DELETE FROM post_categories WHERE post_id = $1", [
+      postId,
+    ]);
+
+    await client.query("DELETE FROM posts WHERE id = $1", [postId]);
+
+    await client.query("COMMIT");
+
+    await invalidateTrendingPosts();
+
+    for (const categoryId of categoryIds) {
+      await invalidateBestByCategory(categoryId.toString());
+    }
+
+    return postId;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw new Error("Failed to delete post");
+  } finally {
+    client.release();
   }
-
-  return result.rows[0];
 }
 
 export async function searchPosts(query: string, page = 1, limit = 5) {

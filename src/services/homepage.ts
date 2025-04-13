@@ -2,6 +2,11 @@ import pool from "../config/db";
 import { getCache, setCache } from "../config/cache";
 
 export async function getTopPostsByCategory(limitPerCategory = 3) {
+  const cacheKey = `top_posts_by_category:${limitPerCategory}`;
+  const cached = await getCache<any[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
   try {
     const categoriesResult = await pool.query(`
       SELECT id, name FROM categories ORDER BY name ASC
@@ -35,6 +40,7 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
         posts: postsResult.rows,
       });
     }
+    await setCache(cacheKey, results, 3600);
     return results;
   } catch (err) {
     console.error("Error fetching top posts by category", err);
