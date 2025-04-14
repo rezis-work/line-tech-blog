@@ -76,7 +76,7 @@ export async function deleteCommentAsAdminOrOwner(
       WHERE c.id = $1
       AND c.post_id = p.id
       AND p.author_id = $2
-      RETURNING id
+      RETURNING c.id
       `,
       [commentId, userId]
     );
@@ -87,7 +87,7 @@ export async function deleteCommentAsAdminOrOwner(
       `
       DELETE FROM comments
       WHERE id = $1 AND user_id = $2
-      RETURNING id
+      RETURNING c.id
       `,
       [commentId, userId]
     );

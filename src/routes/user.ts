@@ -1,8 +1,19 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { getPostsByUserId, updateAdminProfile } from "../services/user";
+import {
+  changeUserPassword,
+  createAdmin,
+  generatePasswordResetToken,
+  getPostsByUserId,
+  getPublicUserProfile,
+  getUserProfile,
+  resetPasswordWithToken,
+  updateAdminProfile,
+  updateMyProfile,
+} from "../services/user";
 import { handleApiError } from "../utils/error";
 import { getUserFromRequest } from "../middleware/auth";
 import { parseBody } from "../utils/parseBody";
+import { sendResetPasswordEmail } from "../utils/email";
 
 export async function handleUserRoutes(
   req: IncomingMessage,
@@ -13,6 +24,20 @@ export async function handleUserRoutes(
     `http://${req.headers.host || "localhost"}`
   );
   const path = parsedUrl.pathname;
+
+  if (req.method === "GET" && path.match(/^\/users\/\d+\/profile-public$/)) {
+    const userId = parseInt(path.split("/")[2]);
+
+    try {
+      const profile = await getPublicUserProfile(userId);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(profile));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to fetch public profile");
+      return true;
+    }
+  }
 
   if (req.method === "GET" && path.match(/^\/users\/\d+\/posts$/)) {
     const userId = parseInt(path.split("/")[2]);
@@ -31,7 +56,47 @@ export async function handleUserRoutes(
   if (req.method === "PUT" && path === "/me/profile") {
     const user = await getUserFromRequest(req);
 
-    if (!user || user.role !== "admin") {
+    if (!user) {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    try {
+      const body = await parseBody(req);
+      const updatedProfile = await updateMyProfile(user.id, user.role, body);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(updatedProfile));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to update profile");
+      return true;
+    }
+  }
+
+  if (req.method === "GET" && path === "/users/profile") {
+    const user = await getUserFromRequest(req);
+
+    if (!user) {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    try {
+      const profile = await getUserProfile(user.id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(profile));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to fetch profile");
+      return true;
+    }
+  }
+
+  if (req.method === "POST" && path === "/holders/admins") {
+    const user = await getUserFromRequest(req);
+
+    if (!user || user.role !== "holder") {
       handleApiError(res, "Unauthorized", 401);
       return true;
     }
@@ -39,23 +104,91 @@ export async function handleUserRoutes(
     try {
       const body = await parseBody(req);
 
-      await updateAdminProfile(user.id, {
+      if (!body.name || !body.email || !body.password) {
+        handleApiError(res, "Missing required fields", 400);
+        return true;
+      }
+
+      const newAdmin = await createAdmin(user.id, {
         name: body.name,
-        coverImageUrl: body.coverImageUrl,
-        bio: body.bio,
-        imageUrl: body.imageUrl,
         email: body.email,
-        facebookUrl: body.facebookUrl,
-        twitterUrl: body.twitterUrl,
-        instagramUrl: body.instagramUrl,
-        linkedinUrl: body.linkedinUrl,
+        password: body.password,
       });
 
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "Profile updated successfully" }));
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(newAdmin));
       return true;
     } catch (err) {
-      handleApiError(res, err, 500, "Failed to update profile");
+      handleApiError(res, err, 500, "Failed to create admin");
+      return true;
+    }
+  }
+
+  if (req.method === "PUT" && path === "/me/change-password") {
+    const user = await getUserFromRequest(req);
+
+    if (!user) {
+      handleApiError(res, "Unauthorized", 401);
+      return true;
+    }
+
+    try {
+      const body = await parseBody(req);
+
+      if (!body.currentPassword || !body.newPassword) {
+        handleApiError(res, "Missing required fields", 400);
+        return true;
+      }
+
+      await changeUserPassword(user.id, body.currentPassword, body.newPassword);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Password updated successfully" }));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to change password");
+      return true;
+    }
+  }
+
+  if (req.method === "POST" && path === "/auth/forget-password") {
+    try {
+      const body = await parseBody(req);
+
+      if (!body.email) {
+        handleApiError(res, "Missing email", 400);
+        return true;
+      }
+
+      const token = await generatePasswordResetToken(body.email);
+
+      await sendResetPasswordEmail(body.email, token);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Password reset token sent" }));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to generate password reset token");
+      return true;
+    }
+  }
+
+  if (req.method === "POST" && path === "/auth/reset-password") {
+    try {
+      const body = await parseBody(req);
+
+      if (!body.token || !body.newPassword) {
+        handleApiError(res, "Missing required fields", 400);
+        return true;
+      }
+
+      await resetPasswordWithToken(body.token, body.newPassword);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ message: "Password reset successful" }));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to reset password");
       return true;
     }
   }
