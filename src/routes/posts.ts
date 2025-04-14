@@ -41,7 +41,6 @@ export async function handlePostRoutes(
       res.end(JSON.stringify(result));
       return true;
     } catch (error) {
-      console.error(error);
       handleApiError(res, `${error}`, 500, "Failed to fetch posts by tags");
       return true;
     }

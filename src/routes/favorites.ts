@@ -27,7 +27,6 @@ export async function handleFavoriteRoutes(
       res.end(JSON.stringify(favorites));
       return true;
     } catch (err) {
-      console.error(err);
       handleApiError(res, `${err}`, 500, "Failed to fetch favorites");
       return true;
     }

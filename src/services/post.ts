@@ -652,8 +652,6 @@ export async function getPostsByTags(tags: string[], page = 1, limit = 5) {
     throw new Error("No tags provided");
   }
 
-  console.log(tags);
-
   const offset = (page - 1) * limit;
 
   const tagPlaceholders = tags.map((_, index) => `$${index + 1}`).join(",");
