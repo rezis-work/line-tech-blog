@@ -27,7 +27,9 @@ export async function handleNotificationsRoutes(
 
   if (req.method === "GET" && path === "/notifications") {
     try {
-      const notifications = await getUserNotifications(user.id);
+      const page = parseInt(parsedUrl.searchParams.get("page") || "1");
+      const limit = parseInt(parsedUrl.searchParams.get("limit") || "10");
+      const notifications = await getUserNotifications(user.id, page, limit);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(notifications));
       return true;

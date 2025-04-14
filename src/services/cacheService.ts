@@ -19,3 +19,13 @@ export async function invalidateBestByCategory(category: string) {
     console.error("Error invalidating best by category cache", error);
   }
 }
+
+export async function invalidateUnreadNotifications(userId: number) {
+  try {
+    const key = `unread_notifications:${userId}`;
+    await redis.del(key);
+    console.log(`Unread notifications cache invalidated for user ${userId}`);
+  } catch (error) {
+    console.error("Error invalidating unread notifications cache", error);
+  }
+}

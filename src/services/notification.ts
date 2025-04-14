@@ -1,4 +1,6 @@
+import { getCache, setCache } from "../config/cache";
 import pool from "../config/db";
+import { invalidateUnreadNotifications } from "./cacheService";
 
 export async function createNotification(
   userId: number,
@@ -16,15 +18,22 @@ export async function createNotification(
   );
 }
 
-export async function getUserNotifications(userId: number) {
+export async function getUserNotifications(
+  userId: number,
+  page = 1,
+  limit = 10
+) {
+  const offset = (page - 1) * limit;
+
   const result = await pool.query(
     `
     SELECT id, type, message, post_id, comment_id, is_read, created_at
     FROM notifications
     WHERE user_id = $1
     ORDER BY created_at DESC
+    LIMIT $2 OFFSET $3
     `,
-    [userId]
+    [userId, limit, offset]
   );
 
   return result.rows;
@@ -47,6 +56,13 @@ export async function markNotificationsAsRead(
 }
 
 export async function getUnreadNotificationCount(userId: number) {
+  const cacheKey = `unread_notifications:${userId}`;
+  const cachedCount = await getCache<number>(cacheKey);
+
+  if (cachedCount) {
+    return cachedCount;
+  }
+
   const { rows } = await pool.query(
     `
     SELECT COUNT(*) FROM notifications
@@ -55,7 +71,12 @@ export async function getUnreadNotificationCount(userId: number) {
     [userId]
   );
 
-  return parseInt(rows[0].count, 10);
+  const count = parseInt(rows[0].count, 10);
+  await setCache(cacheKey, count);
+
+  await invalidateUnreadNotifications(userId);
+
+  return count;
 }
 
 export async function clearAllNotifications(userId: number) {
