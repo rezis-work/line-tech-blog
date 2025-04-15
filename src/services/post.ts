@@ -461,24 +461,45 @@ export async function deletePostBySlug(slug: string) {
 
 export async function searchPosts(query: string, page = 1, limit = 5) {
   const offset = (page - 1) * limit;
+  let results: any[] = [];
 
-  const result = await pool.query(
+  const fullTextResult = await pool.query(
     `
     SELECT
      p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
      u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url,
-     ts_rank_cd(ps.document, plainto_tsquery('english', $1)) AS rank
+     ts_rank_cd(ps.document, to_tsquery('english', $1 || ':*')) AS rank
     FROM posts_search ps
     JOIN posts p ON ps.post_id = p.id
     JOIN users u ON p.author_id = u.id
-    WHERE ps.document @@ plainto_tsquery('english', $1)
+    WHERE ps.document @@ to_tsquery('english', $1 || ':*')
     ORDER BY rank DESC, p.created_at DESC
     LIMIT $2 OFFSET $3
     `,
     [query, limit, offset]
   );
 
-  return result.rows.map((row) => ({
+  results = fullTextResult.rows;
+
+  if (results.length === 0) {
+    const fallbackResult = await pool.query(
+      `
+       SELECT
+        p.id, p.title, p.slug, p.content, p.image_url, p.created_at,
+        u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+       FROM posts p
+       JOIN users u ON p.author_id = u.id
+       WHERE p.title ILIKE $1 OR p.content ILIKE $1 OR u.name ILIKE $1
+       ORDER BY p.created_at DESC
+       LIMIT $2 OFFSET $3
+      `,
+      [`%${query}%`, limit, offset]
+    );
+
+    results = fallbackResult.rows;
+  }
+
+  return results.map((row) => ({
     id: row.id,
     title: row.title,
     slug: row.slug,
