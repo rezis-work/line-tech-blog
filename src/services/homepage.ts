@@ -19,9 +19,15 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
     for (const category of categories) {
       const postsResult = await pool.query(
         `
-        SELECT
-         p.id, p.title, p.slug, p.image_url, p.created_at,
-         u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
+        SELECT 
+          p.id, p.title, p.slug, p.image_url, p.content, p.created_at,
+          u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url,
+          COALESCE((
+            SELECT COUNT(*) FROM comments WHERE post_id = p.id
+          ), 0) AS comment_count,
+          COALESCE((
+            SELECT COUNT(*) FROM favorites WHERE post_id = p.id
+          ), 0) AS favorite_count
         FROM posts p
         JOIN post_categories pc ON pc.post_id = p.id
         JOIN users u ON p.author_id = u.id
@@ -37,7 +43,21 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
           id: category.id,
           name: category.name,
         },
-        posts: postsResult.rows,
+        posts: postsResult.rows.map((post) => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          imageUrl: post.image_url,
+          excerpt: post.content.substring(0, 100) + "...",
+          createdAt: post.created_at,
+          author: {
+            id: post.author_id,
+            name: post.author_name,
+            imageUrl: post.author_image_url,
+          },
+          commentCount: post.comment_count,
+          favoriteCount: post.favorite_count,
+        })),
       });
     }
     await setCache(cacheKey, results, 3600);
@@ -58,18 +78,46 @@ export async function getTrendingPosts(limit = 10) {
     const result = await pool.query(
       `
       SELECT
-       p.id, p.title, p.slug, p.image_url, p.created_at,
-       u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url,
-       COUNT(f.post_id) AS total_favorites
-      FROM posts p
-      LEFT JOIN favorites f ON f.post_id = p.id AND p.created_at >= NOW() - INTERVAL '7 days'
-      JOIN users u ON p.author_id = u.id
-      GROUP BY p.id, u.id
-      ORDER BY COUNT(f.post_id) DESC, p.created_at DESC
-      LIMIT $1
+        p.id, p.title, p.slug, p.image_url, p.created_at,
+        u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url,
+        (
+          SELECT COUNT(*) FROM favorites f
+          WHERE f.post_id = p.id AND f.created_at >= NOW() - INTERVAL '7 days'
+        ) AS favorite_count,
+        (
+          SELECT COUNT(*) FROM comments c
+          WHERE c.post_id = p.id AND c.created_at >= NOW() - INTERVAL '7 days'
+        ) AS comment_count
+       FROM posts p
+       JOIN users u ON p.author_id = u.id
+       ORDER BY favorite_count DESC, comment_count DESC, p.created_at DESC
+       LIMIT $1
       `,
       [limit]
     );
+
+    const postIds = result.rows.map((post) => post.id);
+
+    let categoriesByPostId: Record<string, string[]> = {};
+    if (postIds.length > 0) {
+      const placeholders = postIds.map((_, index) => `$${index + 1}`).join(",");
+      const catResult = await pool.query(
+        `
+         SELECT pc.post_id, c.name
+         FROM post_categories pc
+         JOIN categories c ON pc.category_id = c.id
+         WHERE pc.post_id IN (${placeholders})
+        `,
+        postIds
+      );
+
+      for (const row of catResult.rows) {
+        if (!categoriesByPostId[row.post_id]) {
+          categoriesByPostId[row.post_id] = [];
+        }
+        categoriesByPostId[row.post_id].push(row.name);
+      }
+    }
 
     const trendingPosts = result.rows.map((post) => ({
       id: post.id,
@@ -82,7 +130,9 @@ export async function getTrendingPosts(limit = 10) {
         name: post.author_name,
         imageUrl: post.author_image_url,
       },
-      favorite_count: post.total_favorites,
+      favoriteCount: post.favorite_count,
+      commentCount: post.comment_count,
+      categories: categoriesByPostId[post.id] || [],
     }));
 
     await setCache(cacheKey, trendingPosts, 3600);
