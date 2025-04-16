@@ -158,7 +158,8 @@ export async function updateMyProfile(
       instagramUrl,
       linkedinUrl,
     } = updates;
-    const result = await pool.query(`
+    const result = await pool.query(
+      `
       UPDATE users
       SET
        name = COALESCE($1, name),
@@ -172,8 +173,20 @@ export async function updateMyProfile(
        linkedin_url = COALESCE($9, linkedin_url)
       WHERE id = $10
       RETURNING id, name, email, image_url, bio, cover_image_url, facebook_url, twitter_url, instagram_url, linkedin_url
-
-      `);
+      `,
+      [
+        name,
+        email,
+        imageUrl,
+        bio,
+        coverImageUrl,
+        facebookUrl,
+        twitterUrl,
+        instagramUrl,
+        linkedinUrl,
+        userId,
+      ]
+    );
 
     await refreshPostsSearchView();
 
