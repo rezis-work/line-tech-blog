@@ -12,12 +12,15 @@ export async function handleBloggerRoutes(
     `http://${req.headers.host || "localhost"}`
   );
   const path = parsedUrl.pathname;
+  const searchParams = parsedUrl.searchParams;
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = parseInt(searchParams.get('limit') || '8');
 
   if (req.method === "GET" && path.startsWith("/bloggers/")) {
     const id = parseInt(path.split("/")[2]);
 
     try {
-      const profile = await getBloggerProfileById(id);
+      const profile = await getBloggerProfileById(id, page, limit);
       if (!profile) {
         handleApiError(res, "Blogger not found", 404);
         return true;
