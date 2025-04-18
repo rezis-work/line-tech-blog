@@ -25,9 +25,15 @@ export async function handleBloggerRoutes(
         handleApiError(res, "Blogger not found", 404);
         return true;
       }
+      const { rows } = await pool.query(
+        `SELECT COUNT(*) FROM posts WHERE author_id = $1`,
+        [id]
+      );
+      const totalCount = parseInt(rows[0].count);
+      const totalPages = Math.ceil(totalCount / limit);
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(profile));
+      res.end(JSON.stringify({ ...profile, totalPages, totalCount }));
       return true;
     } catch (error) {
       handleApiError(res, error, 500);

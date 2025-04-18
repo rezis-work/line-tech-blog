@@ -8,7 +8,7 @@ export async function getBloggerProfileById(
 ) {
   const userResult = await pool.query(
     `
-    SELECT id, name, cover_image_url, image_url, bio, facebook_url, twitter_url, instagram_url, linkedin_url
+    SELECT id, name, cover_image_url, image_url, bio, facebook_url, twitter_url, instagram_url, linkedin_url, created_at as register_day
     FROM users
     WHERE id = $1 AND role = 'admin'
     `,

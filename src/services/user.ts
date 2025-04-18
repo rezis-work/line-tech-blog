@@ -129,24 +129,7 @@ export async function updateMyProfile(
     linkedinUrl?: string;
   }
 ) {
-  if (role === "user") {
-    const { name, email, imageUrl } = updates;
-    const result = await pool.query(
-      `
-      UPDATE users
-      SET
-       name = COALESCE($1, name),
-       email = COALESCE($2, email),
-       image_url = COALESCE($3, image_url)
-      WHERE id = $4
-      RETURNING id, name, email, image_url
-      
-      `,
-      [name, email, imageUrl, userId]
-    );
-
-    return result.rows[0];
-  } else if (role === "admin" || role === "holder") {
+  if (role === "user" || role === "admin" || role === "holder") {
     const {
       name,
       email,
