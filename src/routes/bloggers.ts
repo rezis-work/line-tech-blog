@@ -13,14 +13,14 @@ export async function handleBloggerRoutes(
   );
   const path = parsedUrl.pathname;
   const searchParams = parsedUrl.searchParams;
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '8');
-
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "8");
+  const sortParam = searchParams.get("sort") as "newest" | "popular" | "commented";
   if (req.method === "GET" && path.startsWith("/bloggers/")) {
     const id = parseInt(path.split("/")[2]);
 
     try {
-      const profile = await getBloggerProfileById(id, page, limit);
+      const profile = await getBloggerProfileById(id, page, limit, sortParam);
       if (!profile) {
         handleApiError(res, "Blogger not found", 404);
         return true;

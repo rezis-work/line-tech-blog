@@ -4,11 +4,12 @@ export async function getBloggerProfileById(
   bloggerId: number,
   page = 1,
   limit = 10,
+  sortParam: "newest" | "popular" | "commented" = "newest",
   tagName?: string
 ) {
   const userResult = await pool.query(
     `
-    SELECT id, name, cover_image_url, image_url, bio, facebook_url, twitter_url, instagram_url, linkedin_url, created_at as register_day
+    SELECT id, name, cover_image_url, image_url, bio, facebook_url, twitter_url, instagram_url, linkedin_url, created_at as register_day, email
     FROM users
     WHERE id = $1 AND role = 'admin'
     `,
@@ -34,12 +35,27 @@ export async function getBloggerProfileById(
 
   params.push(limit, offset);
 
+  let orderByClause = "";
+  switch (sortParam) {
+    case "newest":
+      orderByClause = "ORDER BY created_at DESC";
+      break;
+    case "popular":
+      orderByClause = "ORDER BY (SELECT COUNT(*) FROM favorites WHERE post_id = posts.id) DESC, created_at DESC";
+      break;
+    case "commented":
+      orderByClause = "ORDER BY (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) DESC, created_at DESC";
+      break;
+    default:
+      orderByClause = "ORDER BY created_at DESC";
+  }
+
   const postsResult = await pool.query(
     `
     SELECT id, title, slug, image_url, created_at
     FROM posts
     WHERE ${whereClause}
-    ORDER BY created_at DESC
+    ${orderByClause}
     LIMIT $${params.length - 1} OFFSET $${params.length}
   `,
     params
