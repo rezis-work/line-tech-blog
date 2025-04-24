@@ -70,8 +70,19 @@ export async function handlePostRoutes(
         sortParam || "newest",
         tagNameParam || undefined
       );
+      
+     
+      const { rows } = await pool.query(
+        `SELECT COUNT(*) FROM posts ${
+          categoryId ? "WHERE category_id = $1" : ""
+        }`,
+        categoryId ? [categoryId] : []
+      );
+      const totalCount = parseInt(rows[0].count);
+      const totalPages = Math.ceil(totalCount / limit);
+      
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result));
+      res.end(JSON.stringify({ ...result, totalPages }));
       return true;
     } catch (err) {
       handleApiError(res, `${err}`, 500, "Failed to fetch posts");
