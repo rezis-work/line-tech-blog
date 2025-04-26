@@ -62,7 +62,13 @@ export async function handlePostRoutes(
     console.log(categoryId);
 
     try {
-      const result = await getAllPosts(
+      const {
+        page: _page,
+        limit: _limit,
+        total,
+        hasMore,
+        posts,
+      } = await getAllPosts(
         categoryId,
         page,
         limit,
@@ -70,19 +76,13 @@ export async function handlePostRoutes(
         sortParam || "newest",
         tagNameParam || undefined
       );
-      
-     
-      const { rows } = await pool.query(
-        `SELECT COUNT(*) FROM posts ${
-          categoryId ? "WHERE category_id = $1" : ""
-        }`,
-        categoryId ? [categoryId] : []
-      );
-      const totalCount = parseInt(rows[0].count);
-      const totalPages = Math.ceil(totalCount / limit);
-      
+
+      const totalPages = Math.ceil(total / limit);
+
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ...result, totalPages }));
+      res.end(
+        JSON.stringify({ page, limit, total, totalPages, hasMore, posts })
+      );
       return true;
     } catch (err) {
       handleApiError(res, `${err}`, 500, "Failed to fetch posts");
