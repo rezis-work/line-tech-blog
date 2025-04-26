@@ -29,23 +29,17 @@ export async function handleNotificationsRoutes(
     try {
       const page = parseInt(parsedUrl.searchParams.get("page") || "1");
       const limit = parseInt(parsedUrl.searchParams.get("limit") || "10");
-      const notifications = await getUserNotifications(user.id, page, limit);
-
       const { rows } = await pool.query(
         "SELECT COUNT(*) FROM notifications WHERE user_id = $1",
         [user.id]
       );
       const totalNotifications = parseInt(rows[0].count);
       const totalPages = Math.ceil(totalNotifications / limit);
+      const notifications = await getUserNotifications(user.id, page, limit , totalPages, totalNotifications);
+
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          ...notifications,
-          totalPages,
-          totalNotifications,
-        })
-      );
+      res.end(JSON.stringify(notifications));
       return true;
     } catch (error) {
       handleApiError(res, error, 500, "Failed to fetch notifications");

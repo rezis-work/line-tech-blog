@@ -21,7 +21,9 @@ export async function createNotification(
 export async function getUserNotifications(
   userId: number,
   page = 1,
-  limit = 10
+  limit = 10,
+  totalPages: number,
+  totalNotifications: number
 ) {
   const offset = (page - 1) * limit;
 
@@ -36,7 +38,11 @@ export async function getUserNotifications(
     [userId, limit, offset]
   );
 
-  return result.rows;
+  return {
+    notifications: result.rows,
+    totalPages,
+    totalNotifications,
+  };
 }
 
 export async function markNotificationsAsRead(
