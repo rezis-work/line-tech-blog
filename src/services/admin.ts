@@ -205,7 +205,9 @@ export async function getReportedPosts() {
     ORDER BY r.created_at DESC
     `);
 
-  return result.rows;
+  return {
+    reports: result.rows
+  };
 }
 
 export async function getReportedComments() {
