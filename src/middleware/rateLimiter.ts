@@ -2,7 +2,7 @@ import { IncomingMessage, ServerResponse } from "http";
 
 const requestCounts: Record<string, { count: number; lastReset: number }> = {};
 
-const MAX_REQUESTS = 100;
+const MAX_REQUESTS = 1000000000;
 const WINDOW_SIZE = 15 * 60 * 1000;
 
 export function rateLimiter(

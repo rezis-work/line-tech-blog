@@ -35,7 +35,7 @@ export async function handleCategoryRoutes(
 
   if (req.method === "POST" && path === "/categories") {
     const user = await getUserFromRequest(req);
-    if (!user || user.role !== "admin") {
+    if (!user || user.role !== "admin" && user.role !== "holder") {
       handleApiError(res, "Forbidden", 403, "Forbidden");
       return true;
     }
