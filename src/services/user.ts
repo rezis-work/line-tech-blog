@@ -315,6 +315,7 @@ export async function resetPasswordWithToken(
     `
     SELECT id, reset_token_expires_at
     FROM users
+    WHERE reset_token = $1
     `,
     [token]
   );
