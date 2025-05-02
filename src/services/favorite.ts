@@ -2,6 +2,7 @@ import pool from "../config/db";
 import { invalidateTrendingPosts } from "./cacheService";
 
 export async function toggleFavorite(userId: number, postId: number) {
+ 
   const check = await pool.query(
     `
     SELECT 1 FROM favorites WHERE user_id = $1 AND post_id = $2
@@ -48,7 +49,6 @@ export async function getfavorites(userId: number) {
   if (result.rows.length === 0) {
     return [];
   }
-
   return result.rows.map((post) => ({
     id: post.id,
     title: post.title,
@@ -60,4 +60,5 @@ export async function getfavorites(userId: number) {
       name: post.author_name,
     },
   }));
+
 }

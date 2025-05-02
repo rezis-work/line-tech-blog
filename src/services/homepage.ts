@@ -1,12 +1,9 @@
 import pool from "../config/db";
 import { getCache, setCache } from "../config/cache";
-
+import {
+  invalidateTrendingPosts,
+} from "./cacheService";
 export async function getTopPostsByCategory(limitPerCategory = 3) {
-  const cacheKey = `top_posts_by_category:${limitPerCategory}`;
-  const cached = await getCache<any[]>(cacheKey);
-  if (cached) {
-    return cached;
-  }
   try {
     const categoriesResult = await pool.query(`
       SELECT id, name FROM categories ORDER BY name ASC
@@ -60,7 +57,7 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
         })),
       });
     }
-    await setCache(cacheKey, results, 3600);
+
     return results;
   } catch (err) {
     console.error("Error fetching top posts by category", err);
@@ -69,11 +66,7 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
 }
 
 export async function getTrendingPosts(limit = 10) {
-  const cacheKey = `trending_posts:${limit}`;
-  const cached = await getCache<any[]>(cacheKey);
-  if (cached) {
-    return cached;
-  }
+  
   try {
     const result = await pool.query(
       `
@@ -90,7 +83,7 @@ export async function getTrendingPosts(limit = 10) {
         ) AS comment_count
        FROM posts p
        JOIN users u ON p.author_id = u.id
-       ORDER BY favorite_count DESC, comment_count DESC, p.created_at DESC
+       ORDER BY comment_count DESC, p.created_at DESC
        LIMIT $1
       `,
       [limit]
@@ -135,8 +128,8 @@ export async function getTrendingPosts(limit = 10) {
       categories: categoriesByPostId[post.id] || [],
     }));
 
-    await setCache(cacheKey, trendingPosts, 3600);
-
+  
+  
     return trendingPosts;
   } catch (err) {
     console.error("Error fetching trending posts", err);

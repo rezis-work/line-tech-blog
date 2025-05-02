@@ -29,3 +29,4 @@ export async function invalidateUnreadNotifications(userId: number) {
     console.error("Error invalidating unread notifications cache", error);
   }
 }
+
