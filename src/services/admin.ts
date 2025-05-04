@@ -187,7 +187,15 @@ export async function getAdminPersonalAnalytics(adminId: number) {
   };
 }
 
-export async function getReportedPosts() {
+export async function getReportedPosts(page: number, limit: number) {
+  const offset = (page - 1) * limit;
+  
+  const countResult = await pool.query(`
+    SELECT COUNT(*) 
+    FROM reports r
+    WHERE r.post_id IS NOT NULL
+  `);
+  
   const result = await pool.query(`
     SELECT 
      r.id AS report_id,
@@ -203,10 +211,18 @@ export async function getReportedPosts() {
     JOIN users u ON r.user_id = u.id
     WHERE r.post_id IS NOT NULL
     ORDER BY r.created_at DESC
-    `);
+    LIMIT $1 OFFSET $2
+    `, [limit, offset]);
 
+  const total = parseInt(countResult.rows[0].count);
+  
   return {
-    reports: result.rows
+    reports: result.rows,
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+    hasMore: page * limit < total
   };
 }
 

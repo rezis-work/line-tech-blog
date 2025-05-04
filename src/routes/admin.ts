@@ -68,6 +68,12 @@ export async function handleAdminDashboardRoutes(
   }
 
   if (req.method === "GET" && req.url === "/admin/reported-posts") {
+    const parsedUrl = new URL(
+      req.url || "",
+      `http://${req.headers.host || "localhost"}`
+    );   
+    const page = parseInt(parsedUrl.searchParams.get("page") || "1");
+    const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
@@ -76,7 +82,7 @@ export async function handleAdminDashboardRoutes(
     }
 
     try {
-      const reports = await getReportedPosts();
+      const reports = await getReportedPosts(page,limit);
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(reports));
