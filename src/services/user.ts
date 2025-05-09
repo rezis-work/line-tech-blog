@@ -3,7 +3,20 @@ import crypto from "crypto-js";
 
 import pool from "../config/db";
 import { refreshPostsSearchView } from "./search";
-export async function getPostsByUserId(userId: number) {
+export async function getPostsByUserId(
+  userId: number,
+  page: number = 1,
+  limit: number = 10
+) {
+  const offset = (page - 1) * limit;
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*) FROM posts WHERE author_id = $1`,
+    [userId]
+  );
+  const totalCount = parseInt(countResult.rows[0].count);
+  const totalPages = Math.ceil(totalCount / limit);
+
   const result = await pool.query(
     `
     SELECT 
@@ -15,17 +28,27 @@ export async function getPostsByUserId(userId: number) {
     FROM posts p
     WHERE p.author_id = $1
     ORDER BY p.created_at DESC
+    LIMIT $2 OFFSET $3
     `,
-    [userId]
+    [userId, limit, offset]
   );
 
-  return result.rows.map((post) => ({
+  const posts = result.rows.map((post) => ({
     id: post.id,
     title: post.title,
     slug: post.slug,
     image_url: post.image_url,
     created_at: post.created_at,
   }));
+
+  return {
+    posts,
+
+    totalCount,
+    totalPages,
+    currentPage: page,
+    limit,
+  };
 }
 
 export async function updateUserProfile(

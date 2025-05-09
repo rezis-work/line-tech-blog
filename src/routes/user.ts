@@ -39,11 +39,17 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "GET" && path.match(/^\/users\/\d+\/posts$/)) {
+  if (req.method === "GET" && path.startsWith("/users/") && path.includes("/posts")) {
     const userId = parseInt(path.split("/")[2]);
+    const parsedUrl = new URL(
+      req.url || "",
+      `http://${req.headers.host || "localhost"}`
+    );
+    const page = parseInt(parsedUrl.searchParams.get("page") || "1");
+    const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
 
     try {
-      const posts = await getPostsByUserId(userId);
+      const posts = await getPostsByUserId(userId, page, limit);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ posts }));
       return true;
