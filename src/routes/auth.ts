@@ -1,6 +1,11 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { parseBody } from "../utils/parseBody";
-import { registerUser, loginUser } from "../services/auth";
+import {
+  registerUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+} from "../services/auth";
 import { handleApiError } from "../utils/error";
 import { getUserFromRequest } from "../middleware/auth";
 import { getPostsByUserId, updateUserProfile } from "../services/user";
@@ -56,13 +61,19 @@ export async function handleAuthRoutes(
         );
         return true;
       }
-      const { token, user } = await loginUser(email, password);
+      const { accessToken, refreshToken, user } = await loginUser(
+        email,
+        password
+      );
       const isProduction = process.env.NODE_ENV === "production";
       res.writeHead(200, {
         "Content-Type": "application/json",
-        "Set-Cookie": createCookie("token", token, {
-          maxAge: 7 * 24 * 60 * 60,
-        }),
+        "Set-Cookie": [
+          createCookie("token", accessToken, { maxAge: 60 * 60 }), // 1h
+          createCookie("refreshToken", refreshToken, {
+            maxAge: 7 * 24 * 60 * 60,
+          }), // 7d
+        ],
       });
       res.end(
         JSON.stringify({
@@ -75,13 +86,46 @@ export async function handleAuthRoutes(
       handleApiError(res, err, 401, "Login failed");
       return true;
     }
+  } else if (req.method === "POST" && path === "/refresh") {
+    try {
+      const { refreshToken } = await parseBody(req);
+      if (!refreshToken) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: "Missing refresh token" }));
+        return true;
+      }
+
+      const { accessToken } = await refreshAccessToken(refreshToken);
+
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": createCookie("token", accessToken, { maxAge: 60 * 60 }),
+      });
+      res.end(JSON.stringify({ accessToken }));
+      return true;
+    } catch (error) {
+      handleApiError(res, error, 401, "Refresh token expired");
+      return true;
+    }
   } else if (req.method === "POST" && path === "/logout") {
-    res.writeHead(200, {
-      "Set-Cookie": "token=; HttpOnly; Path=/; Max-Age=0",
-      "Content-Type": "application/json",
-    });
-    res.end(JSON.stringify({ message: "Logged out successfully" }));
-    return true;
+    try {
+      const { refreshToken } = await parseBody(req);
+      if (refreshToken) {
+        await logoutUser(refreshToken);
+      }
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Set-Cookie": [
+          "token=; HttpOnly; Path=/; Max-Age=0",
+          "refreshToken=; HttpOnly; Path=/; Max-Age=0",
+        ],
+      });
+      res.end(JSON.stringify({ message: "Logged out successfully" }));
+      return true;
+    } catch (error) {
+      handleApiError(res, error, 401, "Logout failed");
+      return true;
+    }
   } else if (req.method === "GET" && path === "/me") {
     try {
       const authorizedUser = await getUserFromRequest(req);
