@@ -109,7 +109,9 @@ export async function handleAuthRoutes(
     }
   } else if (req.method === "POST" && path === "/logout") {
     try {
-      const { refreshToken } = await parseBody(req);
+      const refreshToken = req.headers.cookie?.split("; ").find(row => row.startsWith("refreshToken="))
+        ?.split("=")[1];
+      console.log(refreshToken);
       if (refreshToken) {
         await logoutUser(refreshToken);
       }
