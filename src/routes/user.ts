@@ -39,7 +39,11 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "GET" && path.startsWith("/users/") && path.includes("/posts")) {
+  if (
+    req.method === "GET" &&
+    path.startsWith("/users/") &&
+    path.includes("/posts")
+  ) {
     const userId = parseInt(path.split("/")[2]);
     const parsedUrl = new URL(
       req.url || "",
@@ -115,10 +119,11 @@ export async function handleUserRoutes(
         return true;
       }
 
-      const newAdmin = await createAdmin(user.id, {
+      const newAdmin = await createAdmin({
         name: body.name,
         email: body.email,
         password: body.password,
+        role: body.role,
       });
 
       res.writeHead(201, { "Content-Type": "application/json" });

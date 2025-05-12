@@ -79,6 +79,7 @@ export async function getTrendingTags(limit = 10) {
     usageCount: parseInt(tag.usage_count),
   }));
 }
+
 export async function getTags() {
   const tagsResult = await pool.query(
     `

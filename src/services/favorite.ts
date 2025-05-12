@@ -1,6 +1,11 @@
+import { cacheKey, getCache, invalidateCache, setCache } from "../config/cache";
 import pool from "../config/db";
+import { createRateLimiter } from "../config/ratelimiter";
 
 export async function toggleFavorite(userId: number, postId: number) {
+  const limiter = createRateLimiter({ limit: 10, windowSeconds: 60 });
+  const { success } = await limiter(userId.toString());
+  if (!success) throw new Error("Too many requests, Pls try again later");
   const check = await pool.query(
     `
     SELECT 1 FROM favorites WHERE user_id = $1 AND post_id = $2
@@ -15,6 +20,7 @@ export async function toggleFavorite(userId: number, postId: number) {
       `,
       [userId, postId]
     );
+    await invalidateCache(cacheKey(["favorites", userId.toString()]));
     return { status: "removed" };
   } else {
     await pool.query(
@@ -24,11 +30,17 @@ export async function toggleFavorite(userId: number, postId: number) {
       [userId, postId]
     );
 
+    await invalidateCache(cacheKey(["favorites", userId.toString()]));
     return { status: "saved" };
   }
 }
 
 export async function getfavorites(userId: number) {
+  const key = cacheKey(["favorites", userId.toString()]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const result = await pool.query(
     `
     SELECT 
@@ -45,7 +57,8 @@ export async function getfavorites(userId: number) {
   if (result.rows.length === 0) {
     return [];
   }
-  return result.rows.map((post) => ({
+
+  const resultObj = result.rows.map((post) => ({
     id: post.id,
     title: post.title,
     slug: post.slug,
@@ -56,4 +69,8 @@ export async function getfavorites(userId: number) {
       name: post.author_name,
     },
   }));
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }

@@ -1,6 +1,9 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { searchPosts } from "../services/post";
 import { handleApiError } from "../utils/error";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const limiter = createRateLimiter({ limit: 30, windowSeconds: 60 });
 
 export async function handleSearchRoutes(
   req: IncomingMessage,
@@ -13,6 +16,9 @@ export async function handleSearchRoutes(
   const path = parsedURL.pathname;
 
   if (req.method === "GET" && path === "/search") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const query = parsedURL.searchParams.get("query");
 
     if (!query || query.trim() === "") {

@@ -15,15 +15,22 @@ export async function getUserFromRequest(
 ): Promise<User | null> {
   try {
     const cookies = parseCookies(req);
-    const token = cookies.token;
+    const token = cookies.accessToken || cookies.token;
 
     if (!token) return null;
-    const decoded = verifyToken(token);
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch (error) {
+      return null;
+    }
 
     const result = await pool.query(
       "SELECT id, name, email, role, image_url FROM users WHERE id = $1",
       [decoded.userId]
     );
+
+    if (!result.rows.length) return null;
 
     return result.rows[0];
   } catch {

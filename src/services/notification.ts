@@ -1,3 +1,5 @@
+import { invalidateCache, setCache } from "../config/cache";
+import { cacheKey, getCache } from "../config/cache";
 import pool from "../config/db";
 
 export async function createNotification(
@@ -14,6 +16,11 @@ export async function createNotification(
     `,
     [userId, type, message, postId || null, commentId || null]
   );
+
+  await invalidateCache(cacheKey(["notifications", userId.toString()]));
+  await invalidateCache(
+    cacheKey(["notifications", "unread", userId.toString()])
+  );
 }
 
 export async function getUserNotifications(
@@ -23,6 +30,16 @@ export async function getUserNotifications(
   totalPages: number,
   totalNotifications: number
 ) {
+  const key = cacheKey([
+    "notifications",
+    userId.toString(),
+    page.toString(),
+    limit.toString(),
+  ]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const offset = (page - 1) * limit;
 
   const result = await pool.query(
@@ -36,11 +53,15 @@ export async function getUserNotifications(
     [userId, limit, offset]
   );
 
-  return {
+  const resultObj = {
     notifications: result.rows,
     totalPages,
     totalNotifications,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function markNotificationsAsRead(
@@ -56,10 +77,18 @@ export async function markNotificationsAsRead(
     [notificationId, userId]
   );
 
+  await invalidateCache(cacheKey(["notifications", userId.toString()]));
+  await invalidateCache(
+    cacheKey(["notifications", "unread", userId.toString()])
+  );
+
   return rows[0];
 }
 
 export async function getUnreadNotificationCount(userId: number) {
+  const key = cacheKey(["notifications", "unread", userId.toString()]);
+  const cached = await getCache(key);
+  if (cached) return cached;
   const { rows } = await pool.query(
     `
     SELECT COUNT(*) FROM notifications
@@ -69,6 +98,8 @@ export async function getUnreadNotificationCount(userId: number) {
   );
 
   const count = parseInt(rows[0].count, 10);
+
+  await setCache(key, count, 300);
 
   return count;
 }
@@ -80,6 +111,11 @@ export async function clearAllNotifications(userId: number) {
     WHERE user_id = $1
     `,
     [userId]
+  );
+
+  await invalidateCache(cacheKey(["notifications", userId.toString()]));
+  await invalidateCache(
+    cacheKey(["notifications", "unread", userId.toString()])
   );
 
   return true;

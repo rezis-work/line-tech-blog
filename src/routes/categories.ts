@@ -10,6 +10,9 @@ import {
 import { getUserFromRequest } from "../middleware/auth";
 import { parseBody } from "../utils/parseBody";
 import { getAllPosts } from "../services/post";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const limiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handleCategoryRoutes(
   req: IncomingMessage,
@@ -22,6 +25,9 @@ export async function handleCategoryRoutes(
   const path = parsedUrl.pathname;
 
   if (req.method === "GET" && path === "/categories") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     try {
       const categories = await getAllCategories();
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -35,7 +41,7 @@ export async function handleCategoryRoutes(
 
   if (req.method === "POST" && path === "/categories") {
     const user = await getUserFromRequest(req);
-    if (!user || user.role !== "admin" && user.role !== "holder") {
+    if (!user || (user.role !== "admin" && user.role !== "holder")) {
       handleApiError(res, "Forbidden", 403, "Forbidden");
       return true;
     }
@@ -53,6 +59,9 @@ export async function handleCategoryRoutes(
   }
 
   if (req.method === "GET" && path.match(/^\/categories\/\d+\/posts$/)) {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const categoryId = parseInt(path.split("/")[2]);
     const page = parseInt(parsedUrl.searchParams.get("page") || "1");
     const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
@@ -90,7 +99,7 @@ export async function handleCategoryRoutes(
 
   if (req.method === "DELETE" && path.startsWith("/categories/")) {
     const user = await getUserFromRequest(req);
-    if (!user || user.role !== "admin" && user.role !== "holder") {
+    if (!user || (user.role !== "admin" && user.role !== "holder")) {
       handleApiError(res, "Forbidden", 403, "Forbidden");
       return true;
     }

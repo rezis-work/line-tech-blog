@@ -1,6 +1,9 @@
 import { getTopCategories } from "../services/category";
 import { handleApiError } from "../utils/error";
 import { IncomingMessage, ServerResponse } from "http";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const limiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handleCategoriesSidebarRoute(
   req: IncomingMessage,
@@ -13,6 +16,9 @@ export async function handleCategoriesSidebarRoute(
   const path = parsedUrl.pathname;
 
   if (req.method === "GET" && path === "/categories/sidebar") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     try {
       const categories = await getTopCategories(5);
       res.writeHead(200, { "Content-Type": "application/json" });

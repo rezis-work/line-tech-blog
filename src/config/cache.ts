@@ -12,6 +12,6 @@ export async function invalidateCache(key: string) {
   await redis.del(key);
 }
 
-export function chacheKey(parts: string[]) {
+export function cacheKey(parts: string[]) {
   return parts.join(":").toLowerCase();
 }

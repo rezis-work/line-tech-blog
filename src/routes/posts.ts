@@ -12,6 +12,9 @@ import {
 import { getUserFromRequest } from "../middleware/auth";
 import { handleApiError } from "../utils/error";
 import pool from "../config/db";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const limiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handlePostRoutes(
   req: IncomingMessage,
@@ -24,6 +27,9 @@ export async function handlePostRoutes(
   const path = parsedUrl.pathname;
 
   if (req.method === "GET" && path === "/posts/tags") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const tagsParam = parsedUrl.searchParams.get("tags");
 
     if (!tagsParam) {
@@ -47,6 +53,9 @@ export async function handlePostRoutes(
   }
 
   if (req.method === "GET" && path === "/posts") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const categoryParam = parsedUrl.searchParams.get("category");
     const pageParam = parsedUrl.searchParams.get("page");
     const limitParam = parsedUrl.searchParams.get("limit");
@@ -59,7 +68,6 @@ export async function handlePostRoutes(
     const categoryId = categoryParam ? parseInt(categoryParam) : undefined;
     const page = pageParam ? parseInt(pageParam) : 1;
     const limit = limitParam ? parseInt(limitParam) : 5;
-    console.log(categoryId);
 
     try {
       const {
@@ -91,6 +99,9 @@ export async function handlePostRoutes(
   }
 
   if (req.method === "GET" && path.startsWith("/posts/")) {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const slug = path.split("/")[2];
 
     try {
@@ -110,6 +121,9 @@ export async function handlePostRoutes(
   }
 
   if (req.method === "POST" && path === "/posts") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const user = await getUserFromRequest(req);
 
     if (!user || user.role !== "admin") {

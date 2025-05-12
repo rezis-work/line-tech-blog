@@ -3,6 +3,26 @@ import { getRelatedPosts } from "../services/post";
 import { handleApiError } from "../utils/error";
 import { getPostBySlug } from "../services/post";
 
+interface Post {
+  id?: number;
+  title?: string;
+  slug?: string;
+  tags?: string[];
+  content?: string;
+  image_url?: string | null;
+  video_url?: string | null;
+  created_at?: Date;
+  author?: {
+    id?: number;
+    name?: string;
+    image_url?: string | null;
+    bio?: string | null;
+  };
+  category_names?: string[];
+  favorite_count?: number;
+  comment_count?: number;
+}
+
 export async function handleRelatedPostsRoute(
   req: IncomingMessage,
   res: ServerResponse
@@ -18,7 +38,7 @@ export async function handleRelatedPostsRoute(
     const slug = parts[2];
 
     try {
-      const post = await getPostBySlug(slug);
+      const post: Post = await getPostBySlug(slug);
       if (!post) {
         handleApiError(res, "Post not found", 404);
         return true;

@@ -1,6 +1,7 @@
 import pool from "../config/db";
 import { refreshPostsSearchView } from "./search";
 import { addTagsToPost, clearTagsFromPost, getTagsForPost } from "./tag";
+import { getCache, setCache, invalidateCache, cacheKey } from "../config/cache";
 
 export async function createPost(
   title: string,
@@ -38,6 +39,11 @@ export async function createPost(
     await client.query("COMMIT");
     if (tagNames.length > 0) {
       await addTagsToPost(post.id, tagNames);
+    }
+    await invalidateCache(cacheKey(["home", "topPostsByCategory", "3"]));
+    await invalidateCache(cacheKey(["home", "trendingPosts", "10"]));
+    if (video_url) {
+      await invalidateCache(cacheKey(["posts", "videos"]));
     }
     await refreshPostsSearchView();
     return post;
@@ -232,6 +238,11 @@ export async function getAllPosts(
 }
 
 export async function getPostBySlug(slug: string) {
+  const key = cacheKey(["post", "slug", slug]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const result = await pool.query(
     `
      SELECT
@@ -284,7 +295,7 @@ export async function getPostBySlug(slug: string) {
   const category_names = categoriesResult.rows.map((row) => row.category_name);
   const tags = await getTagsForPost(post.id);
 
-  return {
+  const resultObj = {
     id: post.id,
     title: post.title,
     slug: post.slug,
@@ -303,9 +314,18 @@ export async function getPostBySlug(slug: string) {
     favorite_count: favoriteCount,
     comment_count: commentCount,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getPostById(id: number) {
+  const key = cacheKey(["post", "id", id.toString()]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const result = await pool.query(
     `
     SELECT
@@ -322,7 +342,10 @@ export async function getPostById(id: number) {
     throw new Error("Post not found");
   }
 
-  return result.rows[0];
+  const post = result.rows[0];
+  await setCache(key, post, 300);
+
+  return post;
 }
 
 export async function updatePostBySlug(
@@ -391,6 +414,10 @@ export async function updatePostBySlug(
 
     await client.query("COMMIT");
     await refreshPostsSearchView();
+    await invalidateCache(cacheKey(["post", "slug", slug]));
+    await invalidateCache(cacheKey(["post", "id", post.id.toString()]));
+    await invalidateCache(cacheKey(["home", "topPostsByCategory", "3"]));
+    await invalidateCache(cacheKey(["home", "trendingPosts", "10"]));
     return post;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -435,6 +462,10 @@ export async function deletePostBySlug(slug: string) {
     await client.query("DELETE FROM posts WHERE id = $1", [postId]);
 
     await client.query("COMMIT");
+    await invalidateCache(cacheKey(["post", "slug", slug]));
+    await invalidateCache(cacheKey(["post", "id", postId.toString()]));
+    await invalidateCache(cacheKey(["home", "topPostsByCategory", "3"]));
+    await invalidateCache(cacheKey(["home", "trendingPosts", "10"]));
 
     return postId;
   } catch (err) {
@@ -504,6 +535,11 @@ export async function searchPosts(query: string, page = 1, limit = 5) {
 }
 
 export async function getPostsWithVideos() {
+  const key = cacheKey(["posts", "videos"]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const result = await pool.query(`
     SELECT p.id, p.title, p.slug, p.image_url, p.created_at, p.video_url,
     u.id AS author_id, u.name AS author_name, u.image_url AS author_image_url
@@ -514,7 +550,7 @@ export async function getPostsWithVideos() {
     LIMIT 20
     `);
 
-  return result.rows.map((row) => ({
+  const videos = result.rows.map((row) => ({
     id: row.id,
     title: row.title,
     slug: row.slug,
@@ -527,9 +563,21 @@ export async function getPostsWithVideos() {
       image_url: row.author_image_url,
     },
   }));
+
+  await setCache(key, videos, 300);
+
+  return videos;
 }
 
-export async function getRelatedPosts(postId: number, limit = 2) {
+export async function getRelatedPosts(postId: number | undefined, limit = 2) {
+  if (!postId) {
+    return [];
+  }
+  const key = cacheKey(["posts", "related", postId.toString()]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const { rows: tagCategoryRows } = await pool.query(
     `
      SELECT 
@@ -562,7 +610,10 @@ export async function getRelatedPosts(postId: number, limit = 2) {
       [postId, limit]
     );
 
-    return rows;
+    const relatedPosts = rows;
+    await setCache(key, relatedPosts, 300);
+
+    return relatedPosts;
   }
 
   const tagPlaceholders = tagIds.map((_, index) => `$${index + 2}`).join(",");
@@ -598,6 +649,11 @@ export async function getRelatedPosts(postId: number, limit = 2) {
 }
 
 export async function getNextAndPrevPosts(slug: string) {
+  const key = cacheKey(["post", "navigation", slug]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const { rows: postRows } = await pool.query(
     `
      Select p.id, p.title, p.slug, p.created_at, p.image_url, p.content,
@@ -648,15 +704,31 @@ export async function getNextAndPrevPosts(slug: string) {
 
   const prevPost = prevRows[0];
 
-  return {
+  const resultObj = {
     prev: prevPost,
     next: nextPost,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getPostsByTags(tags: string[], page = 1, limit = 5) {
   if (tags.length === 0) {
     throw new Error("No tags provided");
+  }
+
+  const key = cacheKey([
+    "posts",
+    "tags",
+    tags.sort().join(","),
+    page.toString(),
+    limit.toString(),
+  ]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
   }
 
   const offset = (page - 1) * limit;
@@ -716,11 +788,15 @@ export async function getPostsByTags(tags: string[], page = 1, limit = 5) {
 
   const total = parseInt(totalResult.rows[0].count);
 
-  return {
+  const resultObj = {
     page,
     limit,
     total,
     hasMore: total > offset + limit,
     posts,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }

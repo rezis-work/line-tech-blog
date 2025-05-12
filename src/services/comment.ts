@@ -1,3 +1,4 @@
+import { cacheKey, getCache, invalidateCache, setCache } from "../config/cache";
 import pool from "../config/db";
 
 export async function createComment(
@@ -19,6 +20,9 @@ export async function createComment(
 }
 
 export async function getCommentsByPostId(postId: number) {
+  const key = cacheKey(["comments", "post", postId.toString()]);
+  const cached = await getCache(key);
+  if (cached) return cached;
   const { rows } = await pool.query(
     `
     SELECT
@@ -60,6 +64,8 @@ export async function getCommentsByPostId(postId: number) {
     }
   }
 
+  await setCache(key, topLevelComments, 300);
+
   return topLevelComments;
 }
 
@@ -80,7 +86,13 @@ export async function deleteCommentAsAdminOrOwner(
       `,
       [commentId, userId]
     );
-
+    const { rows } = await pool.query(
+      `SELECT post_id FROM comments WHERE id = $1`,
+      [commentId]
+    );
+    if (!rows.length) throw new Error("Comment not found");
+    const postId = rows[0].post_id;
+    await invalidateCache(cacheKey(["comments", "post", postId.toString()]));
     return result.rows[0];
   } else {
     const result = await pool.query(
@@ -114,6 +126,14 @@ export async function updateCommentById(
   if (result.rows.length === 0) {
     throw new Error("Comment not found or not authorized");
   }
+
+  const { rows } = await pool.query(
+    `SELECT post_id FROM comments WHERE id = $1`,
+    [commentId]
+  );
+  if (!rows.length) throw new Error("Comment not found");
+  const postId = rows[0].post_id;
+  await invalidateCache(cacheKey(["comments", "post", postId.toString()]));
 
   return result.rows[0];
 }

@@ -1,6 +1,9 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { getNextAndPrevPosts } from "../services/post";
 import { handleApiError } from "../utils/error";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const limiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handleNextPrevPostsRoute(
   req: IncomingMessage,
@@ -18,6 +21,9 @@ export async function handleNextPrevPostsRoute(
     parts[1] === "posts" &&
     parts[3] === "navigation"
   ) {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const slug = parts[2];
 
     try {

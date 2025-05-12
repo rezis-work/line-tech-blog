@@ -1,5 +1,15 @@
+import { cacheKey, getCache, setCache } from "../config/cache";
 import pool from "../config/db";
 export async function getTopPostsByCategory(limitPerCategory = 3) {
+  const key = cacheKey([
+    "home",
+    "topPostsByCategory",
+    limitPerCategory.toString(),
+  ]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   try {
     const categoriesResult = await pool.query(`
       SELECT id, name FROM categories ORDER BY name ASC
@@ -54,6 +64,8 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
       });
     }
 
+    await setCache(key, results, 300);
+
     return results;
   } catch (err) {
     console.error("Error fetching top posts by category", err);
@@ -62,6 +74,11 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
 }
 
 export async function getTrendingPosts(limit = 10) {
+  const key = cacheKey(["home", "trendingPosts", limit.toString()]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   try {
     const result = await pool.query(
       `
@@ -122,6 +139,8 @@ export async function getTrendingPosts(limit = 10) {
       commentCount: post.comment_count,
       categories: categoriesByPostId[post.id] || [],
     }));
+
+    await setCache(key, trendingPosts, 300);
 
     return trendingPosts;
   } catch (err) {

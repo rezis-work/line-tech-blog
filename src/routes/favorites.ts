@@ -41,7 +41,6 @@ export async function handleFavoriteRoutes(
 
     try {
       const result = await toggleFavorite(user.id, postId);
-      console.log(result, "im toggle favourite in route");
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
       return true;

@@ -12,6 +12,10 @@ import { getUserFromRequest } from "../middleware/auth";
 import { createNotification } from "../services/notification";
 import pool from "../config/db";
 import { getPostById } from "../services/post";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const commentPostLimiter = createRateLimiter({ limit: 10, windowSeconds: 60 });
+const commentGetLimiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handleCommentRoutes(
   req: IncomingMessage,
@@ -33,6 +37,12 @@ export async function handleCommentRoutes(
       handleApiError(res, "Unauthorized", 401);
       return true;
     }
+
+    const { success } = await commentPostLimiter(
+      req.socket.remoteAddress ?? "unknown"
+    );
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
 
     const segments = path.split("/");
     const parentCommentId = parseInt(segments[2]);
@@ -88,6 +98,12 @@ export async function handleCommentRoutes(
       return true;
     }
 
+    const { success } = await commentPostLimiter(
+      req.socket.remoteAddress ?? "unknown"
+    );
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
+
     const postId = parseInt(path.split("/")[2]);
 
     try {
@@ -118,6 +134,11 @@ export async function handleCommentRoutes(
   }
 
   if (req.method === "GET" && path.startsWith("/comments/")) {
+    const { success } = await commentGetLimiter(
+      req.socket.remoteAddress ?? "unknown"
+    );
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     const postId = parseInt(path.split("/")[2]);
 
     try {

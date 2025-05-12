@@ -1,3 +1,4 @@
+import { cacheKey, getCache, setCache } from "../config/cache";
 import pool from "../config/db";
 
 export async function getBloggerProfileById(
@@ -7,6 +8,18 @@ export async function getBloggerProfileById(
   sortParam: "newest" | "popular" | "commented" = "newest",
   tagName?: string
 ) {
+  const key = cacheKey([
+    "blogger",
+    bloggerId.toString(),
+    page.toString(),
+    limit.toString(),
+    sortParam,
+    tagName ?? "none",
+  ]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const userResult = await pool.query(
     `
     SELECT id, name, cover_image_url, image_url, bio, facebook_url, twitter_url, instagram_url, linkedin_url, created_at as register_day, email
@@ -41,10 +54,12 @@ export async function getBloggerProfileById(
       orderByClause = "ORDER BY created_at DESC";
       break;
     case "popular":
-      orderByClause = "ORDER BY (SELECT COUNT(*) FROM favorites WHERE post_id = posts.id) DESC, created_at DESC";
+      orderByClause =
+        "ORDER BY (SELECT COUNT(*) FROM favorites WHERE post_id = posts.id) DESC, created_at DESC";
       break;
     case "commented":
-      orderByClause = "ORDER BY (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) DESC, created_at DESC";
+      orderByClause =
+        "ORDER BY (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) DESC, created_at DESC";
       break;
     default:
       orderByClause = "ORDER BY created_at DESC";
@@ -123,11 +138,15 @@ export async function getBloggerProfileById(
     tags: tagsMap[post.id] || [],
   }));
 
-  return {
+  const resultObj = {
     blogger: userResult.rows[0],
     posts,
     page,
     limit,
     hasMore: posts.length === limit,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }

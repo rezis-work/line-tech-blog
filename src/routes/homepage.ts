@@ -1,6 +1,9 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { handleApiError } from "../utils/error";
 import { getTopPostsByCategory, getTrendingPosts } from "../services/homepage";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const homepageLimiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handleHomepageRoutes(
   req: IncomingMessage,
@@ -13,6 +16,11 @@ export async function handleHomepageRoutes(
   const path = parsedUrl.pathname;
 
   if (req.method === "GET" && path === "/homepage/top-by-category") {
+    const { success } = await homepageLimiter(
+      req.socket.remoteAddress ?? "unknown"
+    );
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     try {
       const result = await getTopPostsByCategory();
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -25,6 +33,11 @@ export async function handleHomepageRoutes(
   }
 
   if (req.method === "GET" && path === "/homepage/trending") {
+    const { success } = await homepageLimiter(
+      req.socket.remoteAddress ?? "unknown"
+    );
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     try {
       const result = await getTrendingPosts();
       res.writeHead(200, { "Content-Type": "application/json" });

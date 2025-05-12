@@ -220,10 +220,17 @@ export async function updateMyProfile(
   }
 }
 
-export async function createAdmin(
-  holderId: number,
-  { name, email, password }: { name: string; email: string; password: string }
-) {
+export async function createAdmin({
+  name,
+  email,
+  password,
+  role,
+}: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}) {
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await pool.query(
     `
@@ -231,7 +238,7 @@ export async function createAdmin(
     VALUES ($1, $2, $3, $4)
     RETURNING id, name, email, role
     `,
-    [name, email, hashedPassword, "admin"]
+    [name, email, hashedPassword, role]
   );
 
   return result.rows[0];

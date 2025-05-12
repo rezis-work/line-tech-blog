@@ -1,6 +1,13 @@
+import { getCache, invalidateCache, setCache } from "../config/cache";
+import { cacheKey } from "../config/cache";
 import pool from "../config/db";
 
 export async function getGlobalDashboardStats() {
+  const key = cacheKey(["admin", "dashboard", "global"]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const [
     postResult,
     userResult,
@@ -36,7 +43,7 @@ export async function getGlobalDashboardStats() {
     `),
   ]);
 
-  return {
+  const resultObj = {
     totalPosts: parseInt(postResult.rows[0].count),
     totalUsers: parseInt(userResult.rows[0].count),
     totalComments: parseInt(commentResult.rows[0].count),
@@ -45,9 +52,18 @@ export async function getGlobalDashboardStats() {
     usersWeek: parseInt(usersWeekResult.rows[0].count),
     commentsWeek: parseInt(commentsWeekResult.rows[0].count),
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getAdminDashboardStats(adminId: number) {
+  const key = cacheKey(["admin", "dashboard", "personal", adminId.toString()]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const [
     postResult,
     commentResult,
@@ -94,16 +110,25 @@ export async function getAdminDashboardStats(adminId: number) {
     ),
   ]);
 
-  return {
+  const resultObj = {
     totalPosts: parseInt(postResult.rows[0].count),
     totalComments: parseInt(commentResult.rows[0].count),
     totalFavorites: parseInt(favoriteResult.rows[0].count),
     postsWeek: parseInt(postsWeekResult.rows[0].count),
     commentsWeek: parseInt(commentsWeekResult.rows[0].count),
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getGlobalAnalyticsData() {
+  const key = cacheKey(["admin", "analytics", "global"]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const [postResult, userResult, commentResult] = await Promise.all([
     pool.query(`
       SELECT 
@@ -131,14 +156,23 @@ export async function getGlobalAnalyticsData() {
         `),
   ]);
 
-  return {
+  const resultObj = {
     posts: postResult.rows,
     users: userResult.rows,
     comments: commentResult.rows,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getAdminPersonalAnalytics(adminId: number) {
+  const key = cacheKey(["admin", "analytics", "personal", adminId.toString()]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const [postResult, commentResult, favoriteResult] = await Promise.all([
     pool.query(
       `
@@ -180,23 +214,39 @@ export async function getAdminPersonalAnalytics(adminId: number) {
     ),
   ]);
 
-  return {
+  const resultObj = {
     posts: postResult.rows,
     comments: commentResult.rows,
     favorites: favoriteResult.rows,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getReportedPosts(page: number, limit: number) {
+  const key = cacheKey([
+    "admin",
+    "reports",
+    "posts",
+    page.toString(),
+    limit.toString(),
+  ]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const offset = (page - 1) * limit;
-  
+
   const countResult = await pool.query(`
     SELECT COUNT(*) 
     FROM reports r
     WHERE r.post_id IS NOT NULL
   `);
-  
-  const result = await pool.query(`
+
+  const result = await pool.query(
+    `
     SELECT 
      r.id AS report_id,
      p.id AS post_id,
@@ -212,21 +262,32 @@ export async function getReportedPosts(page: number, limit: number) {
     WHERE r.post_id IS NOT NULL
     ORDER BY r.created_at DESC
     LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+    `,
+    [limit, offset]
+  );
 
   const total = parseInt(countResult.rows[0].count);
-  
-  return {
+
+  const resultObj = {
     reports: result.rows,
     page,
     limit,
     total,
     totalPages: Math.ceil(total / limit),
-    hasMore: page * limit < total
+    hasMore: page * limit < total,
   };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function getReportedComments() {
+  const key = cacheKey(["admin", "reports", "comments"]);
+  const cached = await getCache(key);
+  if (cached) {
+    return cached;
+  }
   const result = await pool.query(`
     SELECT 
      r.id AS report_id,
@@ -244,7 +305,13 @@ export async function getReportedComments() {
     ORDER BY r.created_at DESC
   `);
 
-  return result.rows;
+  const resultObj = {
+    reports: result.rows,
+  };
+
+  await setCache(key, resultObj, 300);
+
+  return resultObj;
 }
 
 export async function deletePost(postId: number) {
@@ -254,6 +321,10 @@ export async function deletePost(postId: number) {
     `,
     [postId]
   );
+
+  await invalidateCache(cacheKey(["home", "topPostsByCategory", "3"]));
+  await invalidateCache(cacheKey(["home", "trendingPosts", "10"]));
+  await invalidateCache(cacheKey(["admin", "dashboard", "global"]));
 }
 
 export async function deleteComment(commentId: number) {

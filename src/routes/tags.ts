@@ -2,6 +2,9 @@ import { IncomingMessage, ServerResponse } from "http";
 import { findOrCreateTag, getTags, getTrendingTags } from "../services/tag";
 import { handleApiError } from "../utils/error";
 import { parseBody } from "../utils/parseBody";
+import { createRateLimiter } from "../config/ratelimiter";
+
+const limiter = createRateLimiter({ limit: 60, windowSeconds: 60 });
 
 export async function handleTagRoutes(
   req: IncomingMessage,
@@ -14,6 +17,9 @@ export async function handleTagRoutes(
   const path = parsedUrl.pathname;
 
   if (req.method === "GET" && path === "/trending-tags") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     try {
       const tags = await getTrendingTags();
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -26,6 +32,9 @@ export async function handleTagRoutes(
   }
 
   if (req.method === "GET" && path === "/tags") {
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success)
+      return handleApiError(res, "Too many requests, try again later", 429);
     try {
       const tags = await getTags();
       res.writeHead(200, { "Content-Type": "application/json" });
