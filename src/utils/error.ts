@@ -15,11 +15,11 @@ export function handleApiError(
 
   if (error instanceof Error) {
     res.statusCode = 401;
-    console.error(error.message);
+    console.error("Checking error", error.message);
     res.end(JSON.stringify({ error: error.message }));
   } else {
     res.statusCode = defaultStatusCode;
-    console.error(error);
+    console.error("Checking error 2", error);
     res.end(JSON.stringify({ error: errorMessage }));
   }
 }
