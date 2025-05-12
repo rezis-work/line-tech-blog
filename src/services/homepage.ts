@@ -1,8 +1,4 @@
 import pool from "../config/db";
-import { getCache, setCache } from "../config/cache";
-import {
-  invalidateTrendingPosts,
-} from "./cacheService";
 export async function getTopPostsByCategory(limitPerCategory = 3) {
   try {
     const categoriesResult = await pool.query(`
@@ -66,7 +62,6 @@ export async function getTopPostsByCategory(limitPerCategory = 3) {
 }
 
 export async function getTrendingPosts(limit = 10) {
-  
   try {
     const result = await pool.query(
       `
@@ -128,8 +123,6 @@ export async function getTrendingPosts(limit = 10) {
       categories: categoriesByPostId[post.id] || [],
     }));
 
-  
-  
     return trendingPosts;
   } catch (err) {
     console.error("Error fetching trending posts", err);

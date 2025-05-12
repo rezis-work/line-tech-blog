@@ -1,8 +1,4 @@
 import pool from "../config/db";
-import {
-  invalidateBestByCategory,
-  invalidateTrendingPosts,
-} from "./cacheService";
 import { refreshPostsSearchView } from "./search";
 import { addTagsToPost, clearTagsFromPost, getTagsForPost } from "./tag";
 
@@ -31,7 +27,6 @@ export async function createPost(
     const post = postResult.rows[0];
 
     for (const categoryId of categoryIds) {
-      await invalidateBestByCategory(categoryId.toString());
       await client.query(
         `
          INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)
@@ -45,7 +40,6 @@ export async function createPost(
       await addTagsToPost(post.id, tagNames);
     }
     await refreshPostsSearchView();
-    await invalidateTrendingPosts();
     return post;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -381,7 +375,6 @@ export async function updatePostBySlug(
       ]);
 
       for (const categoryId of updates.categoryIds) {
-        await invalidateBestByCategory(categoryId.toString());
         await client.query(
           `
           INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)
@@ -397,7 +390,6 @@ export async function updatePostBySlug(
     }
 
     await client.query("COMMIT");
-    await invalidateTrendingPosts();
     await refreshPostsSearchView();
     return post;
   } catch (err) {
@@ -443,12 +435,6 @@ export async function deletePostBySlug(slug: string) {
     await client.query("DELETE FROM posts WHERE id = $1", [postId]);
 
     await client.query("COMMIT");
-
-    await invalidateTrendingPosts();
-
-    for (const categoryId of categoryIds) {
-      await invalidateBestByCategory(categoryId.toString());
-    }
 
     return postId;
   } catch (err) {

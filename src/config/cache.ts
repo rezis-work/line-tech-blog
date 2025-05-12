@@ -1,19 +1,17 @@
-import redis from "./redis";
+import { redis } from "./redis";
 
-export async function setCache(key: string, value: any, ttl = 3600) {
-  if (!redis) {
-    throw new Error("Redis is not connected");
-  }
-  await redis.set(key, JSON.stringify(value), "EX", ttl);
+export async function setCache<T>(key: string, value: T, ttlSeconds = 3600) {
+  await redis.set(key, value, { ex: ttlSeconds });
 }
 
 export async function getCache<T>(key: string): Promise<T | null> {
-  if (!redis) {
-    throw new Error("Redis is not connected");
-  }
-  const data = await redis.get(key);
-  if (data) {
-    return JSON.parse(data);
-  }
-  return null;
+  return await redis.get<T>(key);
+}
+
+export async function invalidateCache(key: string) {
+  await redis.del(key);
+}
+
+export function chacheKey(parts: string[]) {
+  return parts.join(":").toLowerCase();
 }

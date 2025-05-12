@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import { startServer } from "./server";
 import pool from "./config/db";
 import { runSchema } from "./utils/runSchema";
