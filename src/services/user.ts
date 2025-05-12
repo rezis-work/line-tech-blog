@@ -24,7 +24,23 @@ export async function getPostsByUserId(
       p.title,
       p.slug,
       p.image_url,
-      p.created_at
+      p.created_at,
+      (
+        SELECT COUNT(*) 
+        FROM favorites f 
+        WHERE f.post_id = p.id
+      ) AS favorite_count,
+      (
+        SELECT COUNT(*) 
+        FROM comments c 
+        WHERE c.post_id = p.id
+      ) AS comment_count,
+      (
+        SELECT ARRAY_AGG(c.name)
+        FROM post_categories pc
+        JOIN categories c ON pc.category_id = c.id
+        WHERE pc.post_id = p.id
+      ) AS categories
     FROM posts p
     WHERE p.author_id = $1
     ORDER BY p.created_at DESC
@@ -39,11 +55,13 @@ export async function getPostsByUserId(
     slug: post.slug,
     image_url: post.image_url,
     created_at: post.created_at,
+    favorite_count: post.favorite_count,
+    comment_count: post.comment_count,
+    categories: post.categories || [],
   }));
 
   return {
     posts,
-
     totalCount,
     totalPages,
     currentPage: page,
