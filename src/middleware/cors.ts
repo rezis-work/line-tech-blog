@@ -1,7 +1,11 @@
 import { IncomingMessage, ServerResponse } from "http";
 
 export function cors(req: IncomingMessage, res: ServerResponse) {
-  const allowedOrigins = ["http://localhost:5173"];
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "https://tech-gazzeta.vercel.app",
+    "https://www.tech-gazzeta.vercel.app",
+  ];
   const origin = req.headers.origin;
 
   if (origin && allowedOrigins.includes(origin)) {
