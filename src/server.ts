@@ -45,8 +45,6 @@ const routeHandlers = [
 export function startServer() {
   const server = http.createServer(async (req, res) => {
     try {
-      res.setHeader("Content-Type", "application/json");
-
       if (cors(req, res)) {
         return;
       }
@@ -54,6 +52,8 @@ export function startServer() {
       if (rateLimiter(req, res)) {
         return;
       }
+
+      res.setHeader("Content-Type", "application/json");
 
       for (const handler of routeHandlers) {
         const handled = await handler(req, res);
