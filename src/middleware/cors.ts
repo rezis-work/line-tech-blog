@@ -7,8 +7,7 @@ export function cors(req: IncomingMessage, res: ServerResponse) {
     "https://www.tech-gazzeta.vercel.app",
   ];
 
-  const origin =
-    req.headers.origin || (req.headers["Origin"] as string | undefined);
+  const origin = req.headers.origin;
 
   // Always add Vary header for proxies (Heroku!)
   res.setHeader("Vary", "Origin");
