@@ -66,15 +66,23 @@ export async function handleAuthRoutes(
         password
       );
       const isProduction = process.env.NODE_ENV === "production";
-      res.writeHead(200, {
-        "Content-Type": "application/json",
-        "Set-Cookie": [
-          createCookie("token", accessToken, { maxAge: 60 * 60 }), // 1h
-          createCookie("refreshToken", refreshToken, {
-            maxAge: 7 * 24 * 60 * 60,
-          }), // 7d
-        ],
-      });
+
+      res.setHeader("Set-Cookie", [
+        createCookie("token", accessToken, {
+          maxAge: 60 * 60, // 1h
+          httpOnly: true,
+          sameSite: "Strict",
+          secure: isProduction,
+          path: "/",
+        }),
+        createCookie("refreshToken", refreshToken, {
+          maxAge: 7 * 24 * 60 * 60, // 7d
+          httpOnly: true,
+          sameSite: "Strict",
+          secure: isProduction,
+          path: "/",
+        }),
+      ]);
       res.end(
         JSON.stringify({
           user: { ...user, password: undefined },

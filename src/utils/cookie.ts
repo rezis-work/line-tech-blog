@@ -1,18 +1,26 @@
 export function createCookie(
   name: string,
   value: string,
-  options: { maxAge?: number } = {}
+  options: {
+    maxAge?: number;
+    httpOnly?: boolean;
+    sameSite?: "Strict" | "Lax" | "None";
+    secure?: boolean;
+    path?: string;
+  } = {}
 ) {
-  const isProduction = process.env.NODE_ENV === "production";
-  let cookie = `${name}=${value}; Path=/; HttpOnly; SameSite=Strict`;
+  let cookie = `${name}=${value}`;
 
-  if (options.maxAge) {
-    cookie += `; Max-Age=${options.maxAge}`;
-  }
+  // Defaults
+  const path = options.path ?? "/";
+  const sameSite = options.sameSite ?? "Strict";
+  const httpOnly = options.httpOnly ?? true;
 
-  if (isProduction) {
-    cookie += "; Secure";
-  }
+  cookie += `; Path=${path}`;
+  if (httpOnly) cookie += `; HttpOnly`;
+  cookie += `; SameSite=${sameSite}`;
+  if (options.secure) cookie += `; Secure`;
+  if (options.maxAge) cookie += `; Max-Age=${options.maxAge}`;
 
   return cookie;
 }
