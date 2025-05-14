@@ -70,7 +70,7 @@ export async function handleNotificationsRoutes(
     }
   }
 
-  if (req.method === "GET" && path === "/notifications/unread-count") {
+  if (req.method === "GET" && path === "/api/notifications/unread-count") {
     try {
       const count = await getUnreadNotificationCount(user.id);
       res.writeHead(200, { "Content-Type": "application/json" });
