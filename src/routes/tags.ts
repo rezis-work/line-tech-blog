@@ -16,7 +16,7 @@ export async function handleTagRoutes(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "GET" && path === "/trending-tags") {
+  if (req.method === "GET" && path === "/api/trending-tags") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -31,7 +31,7 @@ export async function handleTagRoutes(
     }
   }
 
-  if (req.method === "GET" && path === "/tags") {
+  if (req.method === "GET" && path === "/api/tags") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -46,7 +46,7 @@ export async function handleTagRoutes(
     }
   }
 
-  if (req.method === "POST" && path === "/find-or-create") {
+  if (req.method === "POST" && path === "/api/find-or-create") {
     try {
       const body = await parseBody(req);
       if (!body.name) {

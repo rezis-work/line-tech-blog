@@ -25,7 +25,7 @@ export async function handleNotificationsRoutes(
     handleApiError(res, "Unauthorized", 401);
     return true;
   }
-  if (req.method === "GET" && path === "/notifications") {
+  if (req.method === "GET" && path === "/api/notifications") {
     try {
       const page = parseInt(parsedUrl.searchParams.get("page") || "1");
       const limit = parseInt(parsedUrl.searchParams.get("limit") || "10");
@@ -35,8 +35,13 @@ export async function handleNotificationsRoutes(
       );
       const totalNotifications = parseInt(rows[0].count);
       const totalPages = Math.ceil(totalNotifications / limit);
-      const notifications = await getUserNotifications(user.id, page, limit , totalPages, totalNotifications);
-
+      const notifications = await getUserNotifications(
+        user.id,
+        page,
+        limit,
+        totalPages,
+        totalNotifications
+      );
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(notifications));

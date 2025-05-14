@@ -25,8 +25,11 @@ export async function handleUserRoutes(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "GET" && path.match(/^\/users\/\d+\/profile-public$/)) {
-    const userId = parseInt(path.split("/")[2]);
+  if (
+    req.method === "GET" &&
+    path.match(/^\/api\/users\/\d+\/profile-public$/)
+  ) {
+    const userId = parseInt(path.split("/")[3]);
 
     try {
       const profile = await getPublicUserProfile(userId);
@@ -41,7 +44,7 @@ export async function handleUserRoutes(
 
   if (
     req.method === "GET" &&
-    path.startsWith("/users/") &&
+    path.startsWith("/api/users/") &&
     path.includes("/posts")
   ) {
     const userId = parseInt(path.split("/")[2]);
@@ -63,7 +66,7 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "PUT" && path === "/me/profile") {
+  if (req.method === "PUT" && path === "/api/me/profile") {
     const user = await getUserFromRequest(req);
 
     if (!user) {
@@ -84,7 +87,7 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "GET" && path === "/users/profile") {
+  if (req.method === "GET" && path === "/api/users/profile") {
     const user = await getUserFromRequest(req);
 
     if (!user) {
@@ -103,7 +106,7 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "POST" && path === "/holders/admins") {
+  if (req.method === "POST" && path === "/api/holders/admins") {
     const user = await getUserFromRequest(req);
 
     if (!user || user.role !== "holder") {
@@ -135,7 +138,7 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "PUT" && path === "/me/change-password") {
+  if (req.method === "PUT" && path === "/api/me/change-password") {
     const user = await getUserFromRequest(req);
 
     if (!user) {
@@ -162,7 +165,7 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "POST" && path === "/auth/forget-password") {
+  if (req.method === "POST" && path === "/api/auth/forget-password") {
     try {
       const body = await parseBody(req);
 
@@ -184,7 +187,7 @@ export async function handleUserRoutes(
     }
   }
 
-  if (req.method === "POST" && path === "/auth/reset-password") {
+  if (req.method === "POST" && path === "/api/auth/reset-password") {
     try {
       const body = await parseBody(req);
 

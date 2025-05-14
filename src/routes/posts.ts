@@ -26,7 +26,7 @@ export async function handlePostRoutes(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "GET" && path === "/posts/tags") {
+  if (req.method === "GET" && path === "/api/posts/tags") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -52,7 +52,7 @@ export async function handlePostRoutes(
     }
   }
 
-  if (req.method === "GET" && path === "/posts") {
+  if (req.method === "GET" && path === "/api/posts") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -98,7 +98,7 @@ export async function handlePostRoutes(
     }
   }
 
-  if (req.method === "GET" && path.startsWith("/posts/")) {
+  if (req.method === "GET" && path.startsWith("/api/posts/")) {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -120,7 +120,7 @@ export async function handlePostRoutes(
     }
   }
 
-  if (req.method === "POST" && path === "/posts") {
+  if (req.method === "POST" && path === "/api/posts") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -162,7 +162,7 @@ export async function handlePostRoutes(
     }
   }
 
-  if (req.method === "PUT" && path.startsWith("/posts/")) {
+  if (req.method === "PUT" && path.startsWith("/api/posts/")) {
     const slug = path.split("/")[2];
     const user = await getUserFromRequest(req);
 
@@ -215,7 +215,7 @@ export async function handlePostRoutes(
     }
   }
 
-  if (req.method === "DELETE" && path.startsWith("/posts/")) {
+  if (req.method === "DELETE" && path.startsWith("/api/posts/")) {
     const slug = path.split("/")[2];
     const user = await getUserFromRequest(req);
 
@@ -236,7 +236,7 @@ export async function handlePostRoutes(
     }
   }
 
-  if (req.method === "GET" && path === "/videos") {
+  if (req.method === "GET" && path === "/api/videos") {
     try {
       const posts = await getPostsWithVideos();
       res.writeHead(200, { "Content-Type": "application/json" });

@@ -15,7 +15,7 @@ export async function handleCategoriesSidebarRoute(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "GET" && path === "/categories/sidebar") {
+  if (req.method === "GET" && path === "/api/categories/sidebar") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);

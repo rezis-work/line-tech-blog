@@ -91,7 +91,7 @@ export async function handleCommentRoutes(
     }
   }
 
-  if (req.method === "POST" && path.startsWith("/comments/")) {
+  if (req.method === "POST" && path.startsWith("/api/comments/")) {
     const user = await getUserFromRequest(req);
     if (!user) {
       handleApiError(res, "Unauthorized", 401);
@@ -133,7 +133,7 @@ export async function handleCommentRoutes(
     }
   }
 
-  if (req.method === "GET" && path.startsWith("/comments/")) {
+  if (req.method === "GET" && path.startsWith("/api/comments/")) {
     const { success } = await commentGetLimiter(
       req.socket.remoteAddress ?? "unknown"
     );
@@ -152,7 +152,7 @@ export async function handleCommentRoutes(
     }
   }
 
-  if (req.method === "DELETE" && path.startsWith("/comments/")) {
+  if (req.method === "DELETE" && path.startsWith("/api/comments/")) {
     const user = await getUserFromRequest(req);
     if (!user) {
       handleApiError(res, "Unauthorized", 401);
@@ -180,7 +180,7 @@ export async function handleCommentRoutes(
     }
   }
 
-  if (req.method === "PUT" && path.match(/^\/comments\/\d+$/)) {
+  if (req.method === "PUT" && path.match(/^\/api\/comments\/\d+$/)) {
     const user = await getUserFromRequest(req);
     if (!user) {
       handleApiError(res, "Unauthorized", 401);

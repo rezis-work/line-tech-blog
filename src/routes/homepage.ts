@@ -15,7 +15,7 @@ export async function handleHomepageRoutes(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "GET" && path === "/homepage/top-by-category") {
+  if (req.method === "GET" && path === "/api/homepage/top-by-category") {
     const { success } = await homepageLimiter(
       req.socket.remoteAddress ?? "unknown"
     );
@@ -32,7 +32,7 @@ export async function handleHomepageRoutes(
     }
   }
 
-  if (req.method === "GET" && path === "/homepage/trending") {
+  if (req.method === "GET" && path === "/api/homepage/trending") {
     const { success } = await homepageLimiter(
       req.socket.remoteAddress ?? "unknown"
     );

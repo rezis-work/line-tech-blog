@@ -22,7 +22,7 @@ export async function handleAuthRoutes(
     `http://${req.headers.host || "localhost"}`
   );
   const path = parsedUrl.pathname;
-  if (req.method === "POST" && path === "/register") {
+  if (req.method === "POST" && path === "/api/register") {
     try {
       const { name, email, password, role } = await parseBody(req);
       if (!name || !email || !password) {
@@ -48,7 +48,7 @@ export async function handleAuthRoutes(
       handleApiError(res, err, 401, "User registration failed");
       return true;
     }
-  } else if (req.method === "POST" && path === "/login") {
+  } else if (req.method === "POST" && path === "/api/login") {
     try {
       const { email, password } = await parseBody(req);
       if (!email || !password) {
@@ -94,7 +94,7 @@ export async function handleAuthRoutes(
       handleApiError(res, err, 401, "Login failed");
       return true;
     }
-  } else if (req.method === "POST" && path === "/refresh") {
+  } else if (req.method === "POST" && path === "/api/refresh") {
     try {
       const { refreshToken } = await parseBody(req);
       if (!refreshToken) {
@@ -115,7 +115,7 @@ export async function handleAuthRoutes(
       handleApiError(res, error, 401, "Refresh token expired");
       return true;
     }
-  } else if (req.method === "POST" && path === "/logout") {
+  } else if (req.method === "POST" && path === "/api/logout") {
     try {
       const refreshToken = req.headers.cookie
         ?.split("; ")
@@ -137,7 +137,7 @@ export async function handleAuthRoutes(
       handleApiError(res, error, 401, "Logout failed");
       return true;
     }
-  } else if (req.method === "GET" && path === "/me") {
+  } else if (req.method === "GET" && path === "/api/me") {
     try {
       const authorizedUser = await getUserFromRequest(req);
 
@@ -155,7 +155,7 @@ export async function handleAuthRoutes(
       handleApiError(res, error, 401, "User not found");
       return true;
     }
-  } else if (req.method === "GET" && path === "/me/posts") {
+  } else if (req.method === "GET" && path === "/api/me/posts") {
     const user = await getUserFromRequest(req);
     if (!user) {
       handleApiError(res, null, 401, "Unauthorized");
@@ -171,7 +171,7 @@ export async function handleAuthRoutes(
       handleApiError(res, err, 500, "Failed to fetch posts");
       return true;
     }
-  } else if (req.method === "PUT" && path === "/me") {
+  } else if (req.method === "PUT" && path === "/api/me") {
     const user = await getUserFromRequest(req);
     if (!user) {
       handleApiError(res, null, 401, "Unauthorized");

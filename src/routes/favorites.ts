@@ -20,7 +20,7 @@ export async function handleFavoriteRoutes(
     return true;
   }
 
-  if (req.method === "GET" && path === "/favorites") {
+  if (req.method === "GET" && path === "/api/favorites") {
     try {
       const favorites = await getfavorites(user.id);
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -32,7 +32,7 @@ export async function handleFavoriteRoutes(
     }
   }
 
-  if (req.method === "POST" && path.startsWith("/favorites/")) {
+  if (req.method === "POST" && path.startsWith("/api/favorites/")) {
     const postId = parseInt(path.split("/")[2]);
     if (isNaN(postId)) {
       handleApiError(res, "Invalid post ID", 400, "Invalid post ID");

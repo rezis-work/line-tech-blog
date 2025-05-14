@@ -18,8 +18,9 @@ export async function handleNextPrevPostsRoute(
 
   if (
     req.method === "GET" &&
-    parts[1] === "posts" &&
-    parts[3] === "navigation"
+    parts[1] === "api" &&
+    parts[2] === "posts" &&
+    parts[4] === "navigation"
   ) {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)

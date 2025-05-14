@@ -34,8 +34,13 @@ export async function handleRelatedPostsRoute(
   const path = parsedUrl.pathname;
   const parts = path.split("/");
 
-  if (req.method === "GET" && parts[1] === "posts" && parts[3] === "related") {
-    const slug = parts[2];
+  if (
+    req.method === "GET" &&
+    parts[1] === "api" &&
+    parts[2] === "posts" &&
+    parts[4] === "related"
+  ) {
+    const slug = parts[3];
 
     try {
       const post: Post = await getPostBySlug(slug);

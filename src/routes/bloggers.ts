@@ -15,8 +15,11 @@ export async function handleBloggerRoutes(
   const searchParams = parsedUrl.searchParams;
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "8");
-  const sortParam = searchParams.get("sort") as "newest" | "popular" | "commented";
-  if (req.method === "GET" && path.startsWith("/bloggers/")) {
+  const sortParam = searchParams.get("sort") as
+    | "newest"
+    | "popular"
+    | "commented";
+  if (req.method === "GET" && path.startsWith("/api/bloggers/")) {
     const id = parseInt(path.split("/")[2]);
 
     try {

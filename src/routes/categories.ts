@@ -24,7 +24,7 @@ export async function handleCategoryRoutes(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "GET" && path === "/categories") {
+  if (req.method === "GET" && path === "/api/categories") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -39,7 +39,7 @@ export async function handleCategoryRoutes(
     }
   }
 
-  if (req.method === "POST" && path === "/categories") {
+  if (req.method === "POST" && path === "/api/categories") {
     const user = await getUserFromRequest(req);
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
       handleApiError(res, "Forbidden", 403, "Forbidden");
@@ -58,7 +58,7 @@ export async function handleCategoryRoutes(
     }
   }
 
-  if (req.method === "GET" && path.match(/^\/categories\/\d+\/posts$/)) {
+  if (req.method === "GET" && path.match(/^\/api\/categories\/\d+\/posts$/)) {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
@@ -77,7 +77,7 @@ export async function handleCategoryRoutes(
     }
   }
 
-  if (req.method === "PUT" && path.startsWith("/categories/")) {
+  if (req.method === "PUT" && path.startsWith("/api/categories/")) {
     const user = await getUserFromRequest(req);
     if (!user || user.role !== "admin") {
       handleApiError(res, "Forbidden", 403, "Forbidden");
@@ -97,7 +97,7 @@ export async function handleCategoryRoutes(
     }
   }
 
-  if (req.method === "DELETE" && path.startsWith("/categories/")) {
+  if (req.method === "DELETE" && path.startsWith("/api/categories/")) {
     const user = await getUserFromRequest(req);
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
       handleApiError(res, "Forbidden", 403, "Forbidden");

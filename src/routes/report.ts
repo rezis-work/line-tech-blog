@@ -17,7 +17,7 @@ export async function handleReportRoutes(
   );
   const path = parsedUrl.pathname;
 
-  if (req.method === "POST" && path.startsWith("/reports/posts/")) {
+  if (req.method === "POST" && path.startsWith("/api/reports/posts/")) {
     const postId = path.split("/")[3];
     const user = await getUserFromRequest(req);
 
@@ -57,7 +57,7 @@ export async function handleReportRoutes(
     }
   }
 
-  if (req.method === "POST" && path.startsWith("/reports/comments/")) {
+  if (req.method === "POST" && path.startsWith("/api/reports/comments/")) {
     const commentId = path.split("/")[3];
     const user = await getUserFromRequest(req);
 

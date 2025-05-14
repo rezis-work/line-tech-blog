@@ -15,7 +15,7 @@ export async function handleSearchRoutes(
   );
   const path = parsedURL.pathname;
 
-  if (req.method === "GET" && path === "/search") {
+  if (req.method === "GET" && path === "/api/search") {
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
