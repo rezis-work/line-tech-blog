@@ -20,7 +20,7 @@ export async function handleBloggerRoutes(
     | "popular"
     | "commented";
   if (req.method === "GET" && path.startsWith("/api/bloggers/")) {
-    const id = parseInt(path.split("/")[2]);
+    const id = parseInt(path.split("/")[3]);
 
     try {
       const profile = await getBloggerProfileById(id, page, limit, sortParam);

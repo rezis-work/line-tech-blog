@@ -117,7 +117,7 @@ export async function handleAdminDashboardRoutes(
     req.method === "DELETE" &&
     req.url?.startsWith("/api/admin/reports/posts/")
   ) {
-    const postId = req.url.split("/")[4];
+    const postId = req.url.split("/")[5];
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
@@ -140,7 +140,7 @@ export async function handleAdminDashboardRoutes(
     req.method === "DELETE" &&
     req.url?.startsWith("/api/admin/reports/comments/")
   ) {
-    const commentId = req.url.split("/")[4];
+    const commentId = req.url.split("/")[5];
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {

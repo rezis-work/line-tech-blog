@@ -47,7 +47,7 @@ export async function handleUserRoutes(
     path.startsWith("/api/users/") &&
     path.includes("/posts")
   ) {
-    const userId = parseInt(path.split("/")[2]);
+    const userId = parseInt(path.split("/")[3]);
     const parsedUrl = new URL(
       req.url || "",
       `http://${req.headers.host || "localhost"}`

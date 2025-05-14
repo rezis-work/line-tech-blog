@@ -102,7 +102,7 @@ export async function handlePostRoutes(
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
-    const slug = path.split("/")[2];
+    const slug = path.split("/")[3];
 
     try {
       const post = await getPostBySlug(slug);
@@ -163,7 +163,7 @@ export async function handlePostRoutes(
   }
 
   if (req.method === "PUT" && path.startsWith("/api/posts/")) {
-    const slug = path.split("/")[2];
+    const slug = path.split("/")[3];
     const user = await getUserFromRequest(req);
 
     if (!user || user.role !== "admin") {
@@ -216,7 +216,7 @@ export async function handlePostRoutes(
   }
 
   if (req.method === "DELETE" && path.startsWith("/api/posts/")) {
-    const slug = path.split("/")[2];
+    const slug = path.split("/")[3];
     const user = await getUserFromRequest(req);
 
     if (!user || user.role !== "admin") {

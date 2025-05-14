@@ -29,7 +29,7 @@ export async function handleCommentRoutes(
 
   if (
     req.method === "POST" &&
-    path.startsWith("/comments/") &&
+    path.startsWith("/api/comments/") &&
     path.includes("/reply")
   ) {
     const user = await getUserFromRequest(req);
@@ -45,7 +45,7 @@ export async function handleCommentRoutes(
       return handleApiError(res, "Too many requests, try again later", 429);
 
     const segments = path.split("/");
-    const parentCommentId = parseInt(segments[2]);
+    const parentCommentId = parseInt(segments[3]);
     const postId = parseInt(segments[4]);
 
     try {
@@ -104,7 +104,7 @@ export async function handleCommentRoutes(
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
 
-    const postId = parseInt(path.split("/")[2]);
+    const postId = parseInt(path.split("/")[3]);
 
     try {
       const { content } = await parseBody(req);
@@ -139,7 +139,7 @@ export async function handleCommentRoutes(
     );
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
-    const postId = parseInt(path.split("/")[2]);
+    const postId = parseInt(path.split("/")[3]);
 
     try {
       const comments = await getCommentsByPostId(postId);
@@ -159,7 +159,7 @@ export async function handleCommentRoutes(
       return true;
     }
 
-    const commentId = parseInt(path.split("/")[2]);
+    const commentId = parseInt(path.split("/")[3]);
 
     try {
       const deleted = await deleteCommentAsAdminOrOwner(
@@ -187,7 +187,7 @@ export async function handleCommentRoutes(
       return true;
     }
 
-    const commentId = parseInt(path.split("/")[2]);
+    const commentId = parseInt(path.split("/")[3]);
 
     try {
       const body = await parseBody(req);

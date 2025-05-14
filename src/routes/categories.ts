@@ -62,7 +62,7 @@ export async function handleCategoryRoutes(
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
-    const categoryId = parseInt(path.split("/")[2]);
+    const categoryId = parseInt(path.split("/")[3]);
     const page = parseInt(parsedUrl.searchParams.get("page") || "1");
     const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
 
@@ -84,7 +84,7 @@ export async function handleCategoryRoutes(
       return true;
     }
 
-    const id = parseInt(path.split("/")[2]);
+    const id = parseInt(path.split("/")[3]);
     try {
       const { name } = await parseBody(req);
       const category = await updateCategory(id, name);
@@ -104,7 +104,7 @@ export async function handleCategoryRoutes(
       return true;
     }
 
-    const id = parseInt(path.split("/")[2]);
+    const id = parseInt(path.split("/")[3]);
     try {
       await deleteCategory(id);
       res.writeHead(200, { "Content-Type": "application/json" });

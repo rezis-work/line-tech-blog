@@ -25,7 +25,7 @@ export async function handleNextPrevPostsRoute(
     const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
     if (!success)
       return handleApiError(res, "Too many requests, try again later", 429);
-    const slug = parts[2];
+    const slug = parts[3];
 
     try {
       const result = await getNextAndPrevPosts(slug);

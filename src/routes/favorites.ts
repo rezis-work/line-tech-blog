@@ -33,7 +33,7 @@ export async function handleFavoriteRoutes(
   }
 
   if (req.method === "POST" && path.startsWith("/api/favorites/")) {
-    const postId = parseInt(path.split("/")[2]);
+    const postId = parseInt(path.split("/")[3]);
     if (isNaN(postId)) {
       handleApiError(res, "Invalid post ID", 400, "Invalid post ID");
       return true;

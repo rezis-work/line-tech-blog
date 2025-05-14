@@ -54,10 +54,10 @@ export async function handleNotificationsRoutes(
 
   if (
     req.method === "PUT" &&
-    path.startsWith("/notifications/") &&
+    path.startsWith("/api/notifications/") &&
     path.endsWith("/read")
   ) {
-    const id = parseInt(path.split("/")[2]);
+    const id = parseInt(path.split("/")[3]);
 
     try {
       await markNotificationsAsRead(id, user.id);
