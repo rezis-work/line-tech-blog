@@ -4,7 +4,8 @@ export function cors(req: IncomingMessage, res: ServerResponse) {
   const allowedOrigins = [
     "http://localhost:5173",
     "https://tech-gazzeta.vercel.app",
-    "https://www.tech-gazzeta.vercel.app",
+    "https://techgazzeta.org",
+    "https://www.techgazzeta.org",
   ];
 
   const origin = req.headers.origin;
