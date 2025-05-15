@@ -16,6 +16,8 @@ export async function createComment(
     [userId, postId, content, parentCommentId || null]
   );
 
+  await invalidateCache(cacheKey(["comments", "post", postId.toString()]));
+
   return result.rows[0];
 }
 
