@@ -16,7 +16,12 @@ export async function handleAdminDashboardRoutes(
   req: IncomingMessage,
   res: ServerResponse
 ) {
-  if (req.method === "GET" && req.url === "/api/admin/dashboard") {
+  const parsedUrl = new URL(
+    req.url || "",
+    `http://${req.headers.host || "localhost"}`
+  );
+  const path = parsedUrl.pathname;
+  if (req.method === "GET" && path === "/api/admin/dashboard") {
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
@@ -42,7 +47,7 @@ export async function handleAdminDashboardRoutes(
     }
   }
 
-  if (req.method === "GET" && req.url === "/api/admin/analytics") {
+  if (req.method === "GET" && path === "/api/admin/analytics") {
     const user = await getUserFromRequest(req);
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
       handleApiError(res, "Unauthorized", 401);
@@ -67,11 +72,7 @@ export async function handleAdminDashboardRoutes(
     }
   }
 
-  if (req.method === "GET" && req.url === "/api/admin/reported-posts") {
-    const parsedUrl = new URL(
-      req.url || "",
-      `http://${req.headers.host || "localhost"}`
-    );
+  if (req.method === "GET" && path.startsWith("/api/admin/reported-posts")) {
     const page = parseInt(parsedUrl.searchParams.get("page") || "1");
     const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
     const user = await getUserFromRequest(req);
@@ -93,7 +94,9 @@ export async function handleAdminDashboardRoutes(
     }
   }
 
-  if (req.method === "GET" && req.url === "/api/admin/reported-comments") {
+  if (req.method === "GET" && path.startsWith("/api/admin/reported-comments")) {
+    const page = parseInt(parsedUrl.searchParams.get("page") || "1");
+    const limit = parseInt(parsedUrl.searchParams.get("limit") || "5");
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
@@ -113,11 +116,8 @@ export async function handleAdminDashboardRoutes(
     }
   }
 
-  if (
-    req.method === "DELETE" &&
-    req.url?.startsWith("/api/admin/reports/posts/")
-  ) {
-    const postId = req.url.split("/")[5];
+  if (req.method === "DELETE" && path.startsWith("/api/admin/reports/posts/")) {
+    const postId = path.split("/")[5];
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
@@ -138,9 +138,9 @@ export async function handleAdminDashboardRoutes(
 
   if (
     req.method === "DELETE" &&
-    req.url?.startsWith("/api/admin/reports/comments/")
+    path.startsWith("/api/admin/reports/comments/")
   ) {
-    const commentId = req.url.split("/")[5];
+    const commentId = path.split("/")[5];
     const user = await getUserFromRequest(req);
 
     if (!user || (user.role !== "admin" && user.role !== "holder")) {
