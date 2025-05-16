@@ -88,3 +88,13 @@ export async function getTags() {
   );
   return tagsResult.rows;
 }
+
+export async function deleteTag(tagId: number) {
+  await pool.query(`DELETE FROM tags WHERE id = $1`, [tagId]);
+  await pool.query(`DELETE FROM post_tags WHERE tag_id = $1`, [tagId]);
+
+  return {
+    success: true,
+    message: "Tag deleted successfully",
+  };
+}

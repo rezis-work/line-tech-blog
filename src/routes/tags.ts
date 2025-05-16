@@ -1,5 +1,10 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { findOrCreateTag, getTags, getTrendingTags } from "../services/tag";
+import {
+  deleteTag,
+  findOrCreateTag,
+  getTags,
+  getTrendingTags,
+} from "../services/tag";
 import { handleApiError } from "../utils/error";
 import { parseBody } from "../utils/parseBody";
 import { createRateLimiter } from "../config/ratelimiter";
@@ -60,6 +65,24 @@ export async function handleTagRoutes(
       return true;
     } catch (err) {
       handleApiError(res, err, 500, "Failed to find or create tag");
+      return true;
+    }
+  }
+
+  if (req.method === "DELETE" && path.startsWith("/api/tags/")) {
+    const tagId = path.split("/")[3];
+    const { success } = await limiter(req.socket.remoteAddress ?? "unknown");
+    if (!success) {
+      handleApiError(res, "Too many requests, try again later", 429);
+      return true;
+    }
+    try {
+      const result = await deleteTag(parseInt(tagId));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result));
+      return true;
+    } catch (err) {
+      handleApiError(res, err, 500, "Failed to delete tag");
       return true;
     }
   }
