@@ -23,6 +23,7 @@ export async function toggleFavorite(userId: number, postId: number) {
     await invalidateCache(cacheKey(["favorites", userId.toString()]));
     await invalidateCache(cacheKey(["home", "topPostsByCategory", "3"]));
     await invalidateCache(cacheKey(["home", "trendingPosts", "10"]));
+    await invalidateCache(cacheKey(["post", "slug", "*"]));
     return { status: "removed" };
   } else {
     await pool.query(
@@ -35,6 +36,7 @@ export async function toggleFavorite(userId: number, postId: number) {
     await invalidateCache(cacheKey(["favorites", userId.toString()]));
     await invalidateCache(cacheKey(["home", "topPostsByCategory", "3"]));
     await invalidateCache(cacheKey(["home", "trendingPosts", "10"]));
+    await invalidateCache(cacheKey(["post", "slug", "*"]));
     return { status: "saved" };
   }
 }

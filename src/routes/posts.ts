@@ -197,6 +197,7 @@ export async function handlePostRoutes(
         newSlug: body.new_slug,
         content: body.content,
         imageUrl: body.image_url,
+        videoUrl: body.video_url,
         categoryIds: body.category_ids,
         tagNames: body.tag_names,
       });
