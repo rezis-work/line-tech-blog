@@ -46,7 +46,7 @@ export async function handleCommentRoutes(
 
     const segments = path.split("/");
     const parentCommentId = parseInt(segments[3]);
-    const postId = parseInt(segments[4]);
+    const postId = parseInt(segments[5]);
 
     try {
       const { content } = await parseBody(req);
